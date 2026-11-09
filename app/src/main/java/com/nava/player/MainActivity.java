@@ -29,6 +29,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.HorizontalScrollView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -44,6 +45,8 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -77,6 +80,10 @@ public final class MainActivity extends Activity {
     private ListView songList;
     private EditText searchBox;
     private SongAdapter adapter;
+    private LinearLayout genreTabs;
+    private LinearLayout playerCard;
+    private MusicGenre selectedGenre = MusicGenre.ALL;
+    private final Map<String, MusicGenre> genreOverrides = new HashMap<>();
 
     private boolean favoritesOnly = false;
     private boolean userSeeking = false;
@@ -116,6 +123,7 @@ public final class MainActivity extends Activity {
         getWindow().setStatusBarColor(BG);
         getWindow().setNavigationBarColor(BG);
         favorites.addAll(getPreferences(MODE_PRIVATE).getStringSet("favorites", new HashSet<>()));
+        loadGenreOverrides();
         buildUi();
         connectToPlaybackService();
         requestAudioPermissionIfNeeded();
@@ -163,6 +171,7 @@ public final class MainActivity extends Activity {
         LinearLayout.LayoutParams tabsParams = new LinearLayout.LayoutParams(-1, dp(48));
         tabsParams.topMargin = dp(8);
         root.addView(tabs, tabsParams);
+        buildGenreSelector();
         allTab.setOnClickListener(v -> {
             favoritesOnly = false;
             refreshSongList();
@@ -189,13 +198,13 @@ public final class MainActivity extends Activity {
         songList.setOnItemClickListener((parent, view, position, id) -> playSong(position));
         songList.setOnItemLongClickListener((parent, view, position, id) -> {
             if (position >= 0 && position < shownSongs.size()) {
-                toggleFavorite(shownSongs.get(position));
+                showSongOptions(shownSongs.get(position));
                 return true;
             }
             return false;
         });
 
-        LinearLayout playerCard = new LinearLayout(this);
+        playerCard = new LinearLayout(this);
         playerCard.setOrientation(LinearLayout.VERTICAL);
         playerCard.setPadding(dp(16), dp(14), dp(16), dp(12));
         playerCard.setBackground(round(PANEL, 22));
@@ -268,6 +277,129 @@ public final class MainActivity extends Activity {
         setContentView(root);
     }
 
+    private void buildGenreSelector() {
+        HorizontalScrollView scroll = new HorizontalScrollView(this);
+        scroll.setHorizontalScrollBarEnabled(false);
+        scroll.setFillViewport(false);
+        genreTabs = new LinearLayout(this);
+        genreTabs.setOrientation(LinearLayout.HORIZONTAL);
+        genreTabs.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+
+        for (MusicGenre genre : MusicGenre.values()) {
+            TextView chip = text(genre.icon + "  " + genre.label, 12, Color.WHITE, true);
+            chip.setGravity(Gravity.CENTER);
+            chip.setPadding(dp(14), 0, dp(14), 0);
+            chip.setBackground(round(PANEL, 18));
+            chip.setTag(genre);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-2, dp(40));
+            params.leftMargin = dp(5);
+            params.rightMargin = dp(2);
+            genreTabs.addView(chip, params);
+            chip.setOnClickListener(v -> {
+                selectedGenre = genre;
+                refreshSongList();
+            });
+        }
+        scroll.addView(genreTabs, new HorizontalScrollView.LayoutParams(-2, dp(44)));
+        LinearLayout.LayoutParams scrollParams = new LinearLayout.LayoutParams(-1, dp(48));
+        scrollParams.topMargin = dp(7);
+        root.addView(scroll, scrollParams);
+        updateGenreTabStyles();
+    }
+
+    private void updateGenreTabStyles() {
+        if (genreTabs == null) return;
+        for (int i = 0; i < genreTabs.getChildCount(); i++) {
+            View child = genreTabs.getChildAt(i);
+            if (!(child instanceof TextView) || !(child.getTag() instanceof MusicGenre)) continue;
+            MusicGenre genre = (MusicGenre) child.getTag();
+            boolean selected = genre == selectedGenre;
+            child.setBackground(round(selected ? genre.accent : PANEL, 18));
+            ((TextView) child).setTextColor(selected ? Color.rgb(20, 18, 28) : Color.WHITE);
+        }
+    }
+
+    private MusicGenre genreFor(Song song) {
+        MusicGenre override = genreOverrides.get(song.id);
+        return override != null ? override : MusicGenre.detect(song.title, song.artist, song.album);
+    }
+
+    private Song findSongById(String id) {
+        if (id == null) return null;
+        for (Song song : allSongs) if (id.equals(song.id)) return song;
+        return null;
+    }
+
+    private void loadGenreOverrides() {
+        Set<String> saved = getPreferences(MODE_PRIVATE).getStringSet("genre_overrides", new HashSet<>());
+        for (String entry : saved) {
+            int separator = entry.lastIndexOf('=');
+            if (separator <= 0 || separator >= entry.length() - 1) continue;
+            try {
+                genreOverrides.put(entry.substring(0, separator),
+                        MusicGenre.valueOf(entry.substring(separator + 1)));
+            } catch (IllegalArgumentException ignored) { }
+        }
+    }
+
+    private void saveGenreOverrides() {
+        Set<String> saved = new HashSet<>();
+        for (Map.Entry<String, MusicGenre> entry : genreOverrides.entrySet()) {
+            saved.add(entry.getKey() + "=" + entry.getValue().name());
+        }
+        getPreferences(MODE_PRIVATE).edit().putStringSet("genre_overrides", saved).apply();
+    }
+
+    private void showSongOptions(Song song) {
+        String favoriteAction = favorites.contains(song.id)
+                ? "حذف از علاقه‌مندی‌ها" : "افزودن به علاقه‌مندی‌ها";
+        new AlertDialog.Builder(this)
+                .setTitle(song.title)
+                .setItems(new String[]{"تغییر سبک آهنگ", favoriteAction}, (dialog, which) -> {
+                    if (which == 0) chooseSongGenre(song);
+                    else toggleFavorite(song);
+                })
+                .setNegativeButton("بستن", null)
+                .show();
+    }
+
+    private void chooseSongGenre(Song song) {
+        MusicGenre[] choices = {
+                MusicGenre.MADAHI, MusicGenre.OLDIES, MusicGenre.TRADITIONAL,
+                MusicGenre.POP, MusicGenre.INSTRUMENTAL, MusicGenre.OTHER
+        };
+        String[] labels = new String[choices.length];
+        for (int i = 0; i < choices.length; i++) {
+            labels[i] = choices[i].icon + "  " + choices[i].label;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle("سبک درست این آهنگ را انتخاب کن")
+                .setItems(labels, (dialog, which) -> {
+                    genreOverrides.put(song.id, choices[which]);
+                    saveGenreOverrides();
+                    refreshSongList();
+                    Toast.makeText(this, "سبک آهنگ ذخیره شد", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("انصراف", null)
+                .show();
+    }
+
+    private void applyThemeForGenre(MusicGenre genre) {
+        MusicGenre theme = genre == null || genre == MusicGenre.ALL ? MusicGenre.OTHER : genre;
+        if (root != null) {
+            GradientDrawable background = new GradientDrawable(
+                    GradientDrawable.Orientation.TOP_BOTTOM,
+                    new int[]{theme.backgroundColor, BG});
+            root.setBackground(background);
+        }
+        if (playerCard != null) playerCard.setBackground(round(theme.panelColor, 22));
+        if (nowTitle != null) nowTitle.setTextColor(theme.accent);
+        if (seekBar != null) {
+            seekBar.setProgressTintList(android.content.res.ColorStateList.valueOf(theme.accent));
+            seekBar.setThumbTintList(android.content.res.ColorStateList.valueOf(MINT));
+        }
+    }
+
     private void connectToPlaybackService() {
         SessionToken token = new SessionToken(this, new ComponentName(this, NavaPlaybackService.class));
         controllerFuture = new MediaController.Builder(this, token).buildAsync();
@@ -314,7 +446,8 @@ public final class MainActivity extends Activity {
                 MediaStore.Audio.Media._ID,
                 MediaStore.Audio.Media.TITLE,
                 MediaStore.Audio.Media.ARTIST,
-                MediaStore.Audio.Media.DURATION
+                MediaStore.Audio.Media.DURATION,
+                MediaStore.Audio.Media.ALBUM
         };
         String selection = MediaStore.Audio.Media.IS_MUSIC + " != 0";
         String order = MediaStore.Audio.Media.TITLE + " COLLATE NOCASE ASC";
@@ -324,14 +457,17 @@ public final class MainActivity extends Activity {
                 int titleCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE);
                 int artistCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST);
                 int durationCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION);
+                int albumCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM);
                 while (cursor.moveToNext()) {
                     long id = cursor.getLong(idCol);
                     String title = cursor.getString(titleCol);
                     String artist = cursor.getString(artistCol);
                     long duration = cursor.getLong(durationCol);
+                    String album = cursor.getString(albumCol);
                     Uri contentUri = ContentUris.withAppendedId(collection, id);
                     allSongs.add(new Song(String.valueOf(id), title == null ? "بدون نام" : title,
-                            artist == null ? "هنرمند ناشناس" : artist, contentUri, duration));
+                            artist == null ? "هنرمند ناشناس" : artist,
+                            album == null ? "" : album, contentUri, duration));
                 }
             }
             refreshSongList();
@@ -346,14 +482,17 @@ public final class MainActivity extends Activity {
         shownSongs.clear();
         for (Song song : allSongs) {
             if (favoritesOnly && !favorites.contains(song.id)) continue;
-            String haystack = (song.title + " " + song.artist).toLowerCase(Locale.ROOT);
+            if (selectedGenre != MusicGenre.ALL && genreFor(song) != selectedGenre) continue;
+            String haystack = (song.title + " " + song.artist + " " + song.album).toLowerCase(Locale.ROOT);
             if (!query.isEmpty() && !haystack.contains(query)) continue;
             shownSongs.add(song);
         }
         adapter.notifyDataSetChanged();
+        updateGenreTabStyles();
+        applyThemeForGenre(selectedGenre == MusicGenre.ALL ? MusicGenre.OTHER : selectedGenre);
         if (statusText != null) {
             if (allSongs.isEmpty()) statusText.setText("هنوز آهنگی پیدا نشده؛ اجازه دسترسی یا وجود فایل موسیقی را بررسی کن.");
-            else statusText.setText(shownSongs.size() + " آهنگ");
+            else statusText.setText(shownSongs.size() + " آهنگ  •  " + (selectedGenre == MusicGenre.ALL ? "همه سبک‌ها" : selectedGenre.label));
         }
     }
 
@@ -364,6 +503,7 @@ public final class MainActivity extends Activity {
         }
         ArrayList<MediaItem> queue = new ArrayList<>();
         for (Song song : shownSongs) queue.add(song.toMediaItem());
+        applyThemeForGenre(genreFor(shownSongs.get(position)));
         controller.setMediaItems(queue, position, 0);
         controller.prepare();
         controller.play();
@@ -436,6 +576,8 @@ public final class MainActivity extends Activity {
             CharSequence artist = item.mediaMetadata.artist;
             nowTitle.setText(title == null ? "در حال پخش" : title);
             nowArtist.setText(artist == null ? " " : artist);
+            Song playing = findSongById(item.mediaId);
+            if (playing != null) applyThemeForGenre(genreFor(playing));
         }
         playButton.setText(controller.isPlaying() ? "Ⅱ" : "▶");
         updateProgress();
@@ -526,13 +668,15 @@ public final class MainActivity extends Activity {
         final String id;
         final String title;
         final String artist;
+        final String album;
         final Uri uri;
         final long duration;
 
-        Song(String id, String title, String artist, Uri uri, long duration) {
+        Song(String id, String title, String artist, String album, Uri uri, long duration) {
             this.id = id;
             this.title = title;
             this.artist = artist;
+            this.album = album;
             this.uri = uri;
             this.duration = duration;
         }
@@ -541,9 +685,16 @@ public final class MainActivity extends Activity {
             MediaMetadata metadata = new MediaMetadata.Builder()
                     .setTitle(title)
                     .setArtist(artist)
+                    .setAlbumTitle(album)
                     .build();
             return new MediaItem.Builder().setMediaId(id).setUri(uri).setMediaMetadata(metadata).build();
         }
+    }
+
+    private static final class SongRowHolder {
+        TextView genreIcon;
+        TextView title;
+        TextView details;
     }
 
     private final class SongAdapter extends BaseAdapter {
@@ -554,28 +705,54 @@ public final class MainActivity extends Activity {
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
             LinearLayout row;
-            TextView title;
-            TextView artist;
-            if (convertView instanceof LinearLayout) {
+            SongRowHolder holder;
+            if (convertView instanceof LinearLayout && convertView.getTag() instanceof SongRowHolder) {
                 row = (LinearLayout) convertView;
-                title = (TextView) row.getChildAt(0);
-                artist = (TextView) row.getChildAt(1);
+                holder = (SongRowHolder) row.getTag();
             } else {
                 row = new LinearLayout(MainActivity.this);
-                row.setOrientation(LinearLayout.VERTICAL);
-                row.setPadding(dp(12), dp(8), dp(12), dp(8));
-                row.setBackground(round(PANEL, 13));
-                title = text("", 14, Color.WHITE, true);
-                artist = text("", 11, MUTED, false);
-                row.addView(title, new LinearLayout.LayoutParams(-1, dp(25)));
-                row.addView(artist, new LinearLayout.LayoutParams(-1, dp(20)));
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                row.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+                row.setGravity(Gravity.CENTER_VERTICAL);
+                row.setPadding(dp(10), dp(8), dp(10), dp(8));
+                holder = new SongRowHolder();
+
+                holder.genreIcon = new TextView(MainActivity.this);
+                holder.genreIcon.setGravity(Gravity.CENTER);
+                holder.genreIcon.setTextSize(20);
+                LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(46), dp(46));
+                iconParams.rightMargin = dp(10);
+                row.addView(holder.genreIcon, iconParams);
+
+                LinearLayout labels = new LinearLayout(MainActivity.this);
+                labels.setOrientation(LinearLayout.VERTICAL);
+                labels.setGravity(Gravity.CENTER_VERTICAL);
+                holder.title = text("", 14, Color.WHITE, true);
+                holder.title.setMaxLines(1);
+                holder.title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                holder.details = text("", 11, MUTED, false);
+                holder.details.setMaxLines(1);
+                holder.details.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                labels.addView(holder.title, new LinearLayout.LayoutParams(-1, dp(25)));
+                labels.addView(holder.details, new LinearLayout.LayoutParams(-1, dp(20)));
+                row.addView(labels, new LinearLayout.LayoutParams(0, -2, 1));
+                row.setTag(holder);
             }
+
             Song song = shownSongs.get(position);
-            title.setText((favorites.contains(song.id) ? "♥  " : "") + song.title);
-            artist.setText(song.artist + "  •  " + formatTime(song.duration));
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
-            params.bottomMargin = dp(7);
-            row.setLayoutParams(params);
+            MusicGenre genre = genreFor(song);
+            row.setBackground(round(genre.panelColor, 14));
+            LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(-1, -2);
+            rowParams.bottomMargin = dp(7);
+            row.setLayoutParams(rowParams);
+
+            holder.genreIcon.setText(genre.icon);
+            holder.genreIcon.setBackground(round(genre.backgroundColor, 12));
+            holder.genreIcon.setTextColor(genre.accent);
+            holder.title.setText((favorites.contains(song.id) ? "♥  " : "") + song.title);
+            holder.title.setTextColor(Color.WHITE);
+            holder.details.setText(song.artist + "  •  " + genre.label + "  •  " + formatTime(song.duration));
+            holder.details.setTextColor(genre.accent);
             return row;
         }
     }

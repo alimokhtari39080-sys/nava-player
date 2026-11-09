@@ -23,3 +23,7 @@ GitHub Actions builds a debug APK on every push to `main`.
 4. Extract the ZIP and install `app-debug.apk` on an Android device.
 
 The debug APK is for testing. A separately signed release build is required for store distribution.
+
+
+## دسته‌بندی و تم هوشمند
+نسخه 1.1.0 آهنگ‌ها را با توجه به عنوان، نام خواننده و نام آلبوم به دسته‌های مداحی، قدیمی، سنتی، پاپ، بی‌کلام و سایر تقسیم می‌کند. هر دسته رنگ و نشان مخصوص خود را دارد و تم پخش‌کننده با آهنگ در حال پخش هماهنگ می‌شود. برای اصلاح تشخیص، روی آهنگ نگه دارید و «تغییر سبک آهنگ» را انتخاب کنید؛ انتخاب دستی روی دستگاه ذخیره می‌شود.
