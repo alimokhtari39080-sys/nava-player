@@ -421,8 +421,16 @@ public final class MainActivity extends Activity {
             try { playCounts.put(item.substring(0, split), Integer.parseInt(item.substring(split + 1))); }
             catch (NumberFormatException ignored) { }
         }
-        listeningHistory.addAll(getPreferences(MODE_PRIVATE)
-                .getStringSet("ai_recent_history", new HashSet<>()));
+        String orderedHistory = getPreferences(MODE_PRIVATE)
+                .getString("ai_recent_history_ordered", "");
+        if (!orderedHistory.isEmpty()) {
+            for (String id : orderedHistory.split("\\n")) {
+                if (!id.isEmpty() && !listeningHistory.contains(id)) listeningHistory.add(id);
+            }
+        } else {
+            listeningHistory.addAll(getPreferences(MODE_PRIVATE)
+                    .getStringSet("ai_recent_history", new HashSet<>()));
+        }
     }
 
     private void recordListening(Song song) {
@@ -437,7 +445,8 @@ public final class MainActivity extends Activity {
             savedCounts.add(entry.getKey() + "=" + entry.getValue());
         getPreferences(MODE_PRIVATE).edit()
                 .putStringSet("ai_play_counts", savedCounts)
-                .putStringSet("ai_recent_history", new HashSet<>(listeningHistory))
+                .putString("ai_recent_history_ordered",
+                        android.text.TextUtils.join("\\n", listeningHistory))
                 .apply();
     }
 
