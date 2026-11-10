@@ -44,6 +44,8 @@ import androidx.media3.session.SessionToken;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -64,6 +66,8 @@ public final class MainActivity extends Activity {
     private final ArrayList<Song> allSongs = new ArrayList<>();
     private final ArrayList<Song> shownSongs = new ArrayList<>();
     private final Set<String> favorites = new HashSet<>();
+    private final Map<String, Integer> playCounts = new HashMap<>();
+    private final ArrayList<String> listeningHistory = new ArrayList<>();
 
     private MediaController controller;
     private ListenableFuture<MediaController> controllerFuture;
@@ -124,6 +128,7 @@ public final class MainActivity extends Activity {
         getWindow().setNavigationBarColor(BG);
         favorites.addAll(getPreferences(MODE_PRIVATE).getStringSet("favorites", new HashSet<>()));
         loadGenreOverrides();
+        loadListeningProfile();
         buildUi();
         connectToPlaybackService();
         requestAudioPermissionIfNeeded();
@@ -143,6 +148,8 @@ public final class MainActivity extends Activity {
 
         TextView subtitle = text("موسیقی، با حال‌وهوای تو", 13, MUTED, false);
         root.addView(subtitle, new LinearLayout.LayoutParams(-1, dp(28)));
+
+        buildAiStudioCard();
 
         searchBox = new EditText(this);
         searchBox.setSingleLine(true);
@@ -275,6 +282,197 @@ public final class MainActivity extends Activity {
         sleep.setOnClickListener(v -> chooseSleepTimer());
 
         setContentView(root);
+    }
+
+    private void buildAiStudioCard() {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(16), dp(12), dp(16), dp(12));
+        GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                new int[]{Color.rgb(55, 35, 92), Color.rgb(25, 67, 78)});
+        bg.setCornerRadius(dp(20));
+        card.setBackground(bg);
+        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(-1, dp(104));
+        cardParams.topMargin = dp(8);
+        cardParams.bottomMargin = dp(4);
+        root.addView(card, cardParams);
+
+        LinearLayout header = new LinearLayout(this);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        TextView title = text("✦  NAVA AI STUDIO", 16, Color.WHITE, true);
+        title.setLetterSpacing(0.04f);
+        header.addView(title, new LinearLayout.LayoutParams(0, dp(30), 1));
+        TextView tag = text("SMART DJ", 9, Color.rgb(154, 255, 232), true);
+        tag.setGravity(Gravity.CENTER);
+        tag.setPadding(dp(9), 0, dp(9), 0);
+        tag.setBackground(round(Color.rgb(31, 91, 91), 14));
+        header.addView(tag, new LinearLayout.LayoutParams(-2, dp(25)));
+        card.addView(header);
+
+        LinearLayout bottom = new LinearLayout(this);
+        bottom.setGravity(Gravity.CENTER_VERTICAL);
+        bottom.setOrientation(LinearLayout.HORIZONTAL);
+        TextView description = text("میکس اختصاصی بر اساس حال‌وهوا و سلیقه‌ات", 11,
+                Color.rgb(224, 220, 245), false);
+        bottom.addView(description, new LinearLayout.LayoutParams(0, dp(34), 1));
+        TextView launch = text("ساخت میکس  ✨", 12, Color.rgb(24, 22, 35), true);
+        launch.setGravity(Gravity.CENTER);
+        launch.setPadding(dp(12), 0, dp(12), 0);
+        launch.setBackground(round(Color.rgb(154, 255, 232), 14));
+        bottom.addView(launch, new LinearLayout.LayoutParams(-2, dp(34)));
+        card.addView(bottom);
+        card.setOnClickListener(v -> openAiStudio());
+        launch.setOnClickListener(v -> openAiStudio());
+    }
+
+    private void openAiStudio() {
+        if (allSongs.isEmpty()) {
+            new AlertDialog.Builder(this).setTitle("NAVA AI")
+                    .setMessage("اول باید به کتابخانه موسیقی گوشی دسترسی داشته باشیم. اجازه دسترسی به موسیقی را فعال کن.")
+                    .setPositiveButton("متوجه شدم", null).show();
+            return;
+        }
+        String[] moods = {"🌙 آرامش و ریلکس", "⚡ انرژی و هیجان", "🎯 تمرکز و مطالعه",
+                "📻 نوستالژی و خاطره", "🕯 معنوی و مداحی", "💜 مطابق سلیقه من"};
+        MusicMood[] values = MusicMood.values();
+        new AlertDialog.Builder(this)
+                .setTitle("NAVA AI  ·  دستیار موسیقی")
+                .setMessage("الان چه حال‌وهوایی داری؟ از آهنگ‌های خود گوشی، یک میکس هوشمند می‌سازم.")
+                .setItems(moods, (dialog, which) -> createAiMix(values[which]))
+                .setNegativeButton("بعداً", null)
+                .show();
+    }
+
+    private void createAiMix(MusicMood mood) {
+        ArrayList<Song> ranked = new ArrayList<>(allSongs);
+        Collections.sort(ranked, (left, right) ->
+                Integer.compare(aiScore(right, mood), aiScore(left, mood)));
+        if (ranked.isEmpty()) return;
+
+        ArrayList<MediaItem> queue = new ArrayList<>();
+        int limit = Math.min(30, ranked.size());
+        for (int i = 0; i < limit; i++) queue.add(ranked.get(i).toMediaItem());
+
+        selectedGenre = MusicGenre.ALL;
+        favoritesOnly = false;
+        if (searchBox != null) searchBox.setText("");
+        refreshSongList();
+        for (int i = 0; i < limit; i++) {
+            if (ranked.get(i).id.equals(queue.get(0).mediaId)) {
+                recordListening(ranked.get(i));
+                break;
+            }
+        }
+        if (controller == null) {
+            Toast.makeText(this, "پخش‌کننده هنوز آماده نیست؛ دوباره تلاش کن.", Toast.LENGTH_LONG).show();
+            return;
+        }
+        controller.setMediaItems(queue, 0, 0);
+        controller.prepare();
+        controller.play();
+        applyThemeForGenre(genreFor(ranked.get(0)));
+        String label = mood.label;
+        Toast.makeText(this, "میکس هوشمند «" + label + "» ساخته شد · " + limit + " آهنگ",
+                Toast.LENGTH_LONG).show();
+    }
+
+    private int aiScore(Song song, MusicMood mood) {
+        MusicGenre genre = genreFor(song);
+        String words = normalizeSearch(song.title + " " + song.artist + " " + song.album);
+        int score = 0;
+        if (favorites.contains(song.id)) score += 3;
+        score += Math.min(2, playCounts.containsKey(song.id) ? playCounts.get(song.id) : 0);
+        if (listeningHistory.contains(song.id)) score += 1;
+        switch (mood) {
+            case CALM:
+                if (genre == MusicGenre.INSTRUMENTAL || genre == MusicGenre.TRADITIONAL) score += 8;
+                if (hasAny(words, "آرام", "ملایم", "ریلکس", "مدیتیشن", "piano", "ambient", "calm")) score += 5;
+                break;
+            case ENERGY:
+                if (genre == MusicGenre.POP) score += 8;
+                if (hasAny(words, "شاد", "انرژی", "رقص", "dance", "remix", "upbeat", "rock")) score += 5;
+                break;
+            case FOCUS:
+                if (genre == MusicGenre.INSTRUMENTAL) score += 10;
+                if (hasAny(words, "بی کلام", "instrumental", "focus", "study", "piano", "ambient")) score += 5;
+                break;
+            case NOSTALGIA:
+                if (genre == MusicGenre.OLDIES) score += 10;
+                if (hasAny(words, "قدیمی", "نوستالژی", "خاطره", "classic", "oldies")) score += 5;
+                break;
+            case SPIRITUAL:
+                if (genre == MusicGenre.MADAHI) score += 12;
+                if (hasAny(words, "مداحی", "نوحه", "روضه", "ذکر", "یا حسین", "یا زهرا")) score += 5;
+                break;
+            case PERSONAL:
+                score += genre == MusicGenre.OTHER ? 0 : 3;
+                break;
+        }
+        return score;
+    }
+
+    private void loadListeningProfile() {
+        Set<String> savedCounts = getPreferences(MODE_PRIVATE)
+                .getStringSet("ai_play_counts", new HashSet<>());
+        for (String item : savedCounts) {
+            int split = item.lastIndexOf('=');
+            if (split <= 0) continue;
+            try { playCounts.put(item.substring(0, split), Integer.parseInt(item.substring(split + 1))); }
+            catch (NumberFormatException ignored) { }
+        }
+        listeningHistory.addAll(getPreferences(MODE_PRIVATE)
+                .getStringSet("ai_recent_history", new HashSet<>()));
+    }
+
+    private void recordListening(Song song) {
+        if (song == null) return;
+        int count = playCounts.containsKey(song.id) ? playCounts.get(song.id) + 1 : 1;
+        playCounts.put(song.id, count);
+        listeningHistory.remove(song.id);
+        listeningHistory.add(0, song.id);
+        while (listeningHistory.size() > 30) listeningHistory.remove(listeningHistory.size() - 1);
+        Set<String> savedCounts = new HashSet<>();
+        for (Map.Entry<String, Integer> entry : playCounts.entrySet())
+            savedCounts.add(entry.getKey() + "=" + entry.getValue());
+        getPreferences(MODE_PRIVATE).edit()
+                .putStringSet("ai_play_counts", savedCounts)
+                .putStringSet("ai_recent_history", new HashSet<>(listeningHistory))
+                .apply();
+    }
+
+    private String normalizeSearch(String value) {
+        return value == null ? "" : value.toLowerCase(Locale.ROOT)
+                .replace('ي', 'ی').replace('ك', 'ک')
+                .replaceAll("[ًٌٍَُِّْـ]", "")
+                .replaceAll("[^\\p{L}\\p{N}]+", " ").trim();
+    }
+
+    private boolean matchesSmartSearch(String haystack, String query) {
+        if (haystack.contains(query)) return true;
+        String expanded = query;
+        if (hasAny(query, "غمگین", "دپ", "دلگیر")) expanded += " غمگین غم عشق جدایی";
+        if (hasAny(query, "شاد", "سرحال", "انرژی")) expanded += " شاد انرژی رقص پاپ";
+        if (hasAny(query, "آرام", "ریلکس", "استراحت")) expanded += " آرام ملایم بی کلام پیانو";
+        if (hasAny(query, "مذهبی", "دینی", "روضه")) expanded += " مداحی نوحه روضه";
+        if (hasAny(query, "قدیمی", "نوستالژی")) expanded += " قدیمی خاطره نوستالژی";
+        if (hasAny(query, "بی کلام", "بدون خواننده")) expanded += " بی کلام instrumental piano";
+        String[] terms = expanded.split("\\s+");
+        int matches = 0;
+        for (String term : terms) if (term.length() > 1 && haystack.contains(term)) matches++;
+        return matches >= Math.max(1, Math.min(2, terms.length / 3));
+    }
+
+    private boolean hasAny(String text, String... terms) {
+        for (String term : terms) if (text.contains(normalizeSearch(term))) return true;
+        return false;
+    }
+
+    private enum MusicMood {
+        CALM("آرامش"), ENERGY("انرژی"), FOCUS("تمرکز"),
+        NOSTALGIA("نوستالژی"), SPIRITUAL("معنوی"), PERSONAL("سلیقه شخصی");
+        final String label;
+        MusicMood(String label) { this.label = label; }
     }
 
     private void buildGenreSelector() {
@@ -478,13 +676,13 @@ public final class MainActivity extends Activity {
 
     private void refreshSongList() {
         if (adapter == null) return;
-        String query = searchBox == null ? "" : searchBox.getText().toString().trim().toLowerCase(Locale.ROOT);
+        String query = searchBox == null ? "" : normalizeSearch(searchBox.getText().toString());
         shownSongs.clear();
         for (Song song : allSongs) {
             if (favoritesOnly && !favorites.contains(song.id)) continue;
             if (selectedGenre != MusicGenre.ALL && genreFor(song) != selectedGenre) continue;
-            String haystack = (song.title + " " + song.artist + " " + song.album).toLowerCase(Locale.ROOT);
-            if (!query.isEmpty() && !haystack.contains(query)) continue;
+            String haystack = normalizeSearch(song.title + " " + song.artist + " " + song.album);
+            if (!query.isEmpty() && !matchesSmartSearch(haystack, query)) continue;
             shownSongs.add(song);
         }
         adapter.notifyDataSetChanged();
@@ -504,6 +702,7 @@ public final class MainActivity extends Activity {
         ArrayList<MediaItem> queue = new ArrayList<>();
         for (Song song : shownSongs) queue.add(song.toMediaItem());
         applyThemeForGenre(genreFor(shownSongs.get(position)));
+        recordListening(shownSongs.get(position));
         controller.setMediaItems(queue, position, 0);
         controller.prepare();
         controller.play();
