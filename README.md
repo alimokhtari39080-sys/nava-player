@@ -1,17 +1,17 @@
 # NAVA Player
 
-A Persian-first Android music player with a dark, premium interface and a custom NAVA launcher icon.
+A Persian-first Android music player with a premium dark interface and a local-first smart music assistant.
 
-## Version 1.0
+## Version 1.2.0 — NAVA AI
 
-- Reads music stored on the device (with permission).
-- Search by track title or artist.
-- Favorites (long-press a track to add/remove).
-- Background playback through AndroidX Media3 MediaSessionService.
-- Notification / lock-screen media controls provided by the media session.
-- Shuffle and repeat modes.
-- Playback speed selection.
-- Sleep timer.
+- Smart DJ mood mixes: calm, energy, focus, nostalgia, spiritual and personal taste.
+- On-device music discovery using track metadata, genre detection, favorites and listening history.
+- Natural-language-style smart search for moods and music categories.
+- Genre-specific player themes and manual genre correction.
+- Local listening profile saved on the device; no account or cloud upload is required for these features.
+- Background playback with AndroidX Media3, lock-screen controls, shuffle, repeat, playback speed and sleep timer.
+
+**AI note:** NAVA AI in this version is a local recommendation engine, not a connected generative-AI service. It does not upload your music or analyze audio with a cloud model.
 
 ## Build
 
@@ -23,7 +23,3 @@ GitHub Actions builds a debug APK on every push to `main`.
 4. Extract the ZIP and install `app-debug.apk` on an Android device.
 
 The debug APK is for testing. A separately signed release build is required for store distribution.
-
-
-## دسته‌بندی و تم هوشمند
-نسخه 1.1.0 آهنگ‌ها را با توجه به عنوان، نام خواننده و نام آلبوم به دسته‌های مداحی، قدیمی، سنتی، پاپ، بی‌کلام و سایر تقسیم می‌کند. هر دسته رنگ و نشان مخصوص خود را دارد و تم پخش‌کننده با آهنگ در حال پخش هماهنگ می‌شود. برای اصلاح تشخیص، روی آهنگ نگه دارید و «تغییر سبک آهنگ» را انتخاب کنید؛ انتخاب دستی روی دستگاه ذخیره می‌شود.
