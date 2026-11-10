@@ -30,10 +30,10 @@ jobs:
         with:
           gradle-version: '8.11.1'
 
-      - name: Install Android SDK
-        run: |
-          yes | sdkmanager --licenses
-          sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-36 build-tools;36.0.0 platform-tools'
 
       - name: Build debug APK
         run: gradle --no-daemon :app:assembleDebug
@@ -47,7 +47,7 @@ jobs:
           retention-days: 14
 
   release:
-    name: Build signed Google Play bundle
+    name: Build Google Play App Bundle
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -70,10 +70,10 @@ jobs:
         with:
           gradle-version: '8.11.1'
 
-      - name: Install Android SDK
-        run: |
-          yes | sdkmanager --licenses
-          sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-36 build-tools;36.0.0 platform-tools'
 
       - name: Prepare upload key
         if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' }}
@@ -81,15 +81,23 @@ jobs:
           echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/nava-upload-key.jks"
           echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/nava-upload-key.jks" >> "$GITHUB_ENV"
 
-      - name: Build signed AAB
-        if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' }}
+      - name: Build release AAB
         run: gradle --no-daemon :app:bundleRelease
 
-      - name: Upload signed AAB
-        if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' }}
+      - name: Upload signed Google Play AAB
+        if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' && env.ANDROID_KEYSTORE_PASSWORD != '' && env.ANDROID_KEY_ALIAS != '' && env.ANDROID_KEY_PASSWORD != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: NAVA-Player-Google-Play-AAB
           path: app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 30
+
+      - name: Upload unsigned release AAB for signing setup
+        if: ${{ env.ANDROID_KEYSTORE_BASE64 == '' || env.ANDROID_KEYSTORE_PASSWORD == '' || env.ANDROID_KEY_ALIAS == '' || env.ANDROID_KEY_PASSWORD == '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: NAVA-Player-release-unsigned
+          path: app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 14
