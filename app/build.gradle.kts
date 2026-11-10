@@ -14,7 +14,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.nava.player"
+        applicationId = "com.nava.player.ai"
         minSdk = 23
         targetSdk = 36
         versionCode = 4
