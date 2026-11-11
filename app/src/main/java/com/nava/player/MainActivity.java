@@ -90,6 +90,9 @@ public final class MainActivity extends Activity {
     private final Map<String, MusicGenre> genreOverrides = new HashMap<>();
 
     private boolean favoritesOnly = false;
+    private boolean recentOnly = false;
+    private boolean popularOnly = false;
+    private int sortMode = 0;
     private boolean userSeeking = false;
     private boolean shuffleEnabled = false;
     private int repeatMode = Player.REPEAT_MODE_OFF;
@@ -129,6 +132,7 @@ public final class MainActivity extends Activity {
         favorites.addAll(getPreferences(MODE_PRIVATE).getStringSet("favorites", new HashSet<>()));
         loadGenreOverrides();
         loadListeningProfile();
+        sortMode = getPreferences(MODE_PRIVATE).getInt("library_sort_mode", 0);
         buildUi();
         connectToPlaybackService();
         requestAudioPermissionIfNeeded();
@@ -171,22 +175,47 @@ public final class MainActivity extends Activity {
         LinearLayout tabs = new LinearLayout(this);
         tabs.setOrientation(LinearLayout.HORIZONTAL);
         tabs.setGravity(Gravity.CENTER_VERTICAL);
-        Button allTab = button("همه آهنگ‌ها", false);
-        Button favoritesTab = button("علاقه‌مندی‌ها", false);
+        Button allTab = button("همه", false);
+        Button favoritesTab = button("♥", false);
+        Button recentTab = button("اخیر", false);
+        Button popularTab = button("پرمصرف", false);
         tabs.addView(allTab, new LinearLayout.LayoutParams(0, dp(42), 1));
-        tabs.addView(favoritesTab, new LinearLayout.LayoutParams(0, dp(42), 1));
+        tabs.addView(favoritesTab, new LinearLayout.LayoutParams(0, dp(42), 0.72f));
+        tabs.addView(recentTab, new LinearLayout.LayoutParams(0, dp(42), 0.9f));
+        tabs.addView(popularTab, new LinearLayout.LayoutParams(0, dp(42), 1));
         LinearLayout.LayoutParams tabsParams = new LinearLayout.LayoutParams(-1, dp(48));
         tabsParams.topMargin = dp(8);
         root.addView(tabs, tabsParams);
         buildGenreSelector();
         allTab.setOnClickListener(v -> {
-            favoritesOnly = false;
+            favoritesOnly = false; recentOnly = false; popularOnly = false;
             refreshSongList();
         });
         favoritesTab.setOnClickListener(v -> {
-            favoritesOnly = true;
+            favoritesOnly = true; recentOnly = false; popularOnly = false;
             refreshSongList();
         });
+        recentTab.setOnClickListener(v -> {
+            favoritesOnly = false; recentOnly = true; popularOnly = false;
+            refreshSongList();
+        });
+        popularTab.setOnClickListener(v -> {
+            favoritesOnly = false; recentOnly = false; popularOnly = true;
+            refreshSongList();
+        });
+
+        LinearLayout libraryTools = new LinearLayout(this);
+        libraryTools.setGravity(Gravity.CENTER_VERTICAL);
+        libraryTools.setOrientation(LinearLayout.HORIZONTAL);
+        TextView sortAction = smallAction("مرتب‌سازی  ⇅");
+        TextView scanAction = smallAction("بازخوانی کتابخانه  ↻");
+        libraryTools.addView(sortAction, new LinearLayout.LayoutParams(0, dp(38), 1));
+        libraryTools.addView(scanAction, new LinearLayout.LayoutParams(0, dp(38), 1));
+        LinearLayout.LayoutParams toolsParams = new LinearLayout.LayoutParams(-1, dp(42));
+        toolsParams.topMargin = dp(4);
+        root.addView(libraryTools, toolsParams);
+        sortAction.setOnClickListener(v -> openSortDialog());
+        scanAction.setOnClickListener(v -> loadSongs());
 
         statusText = text("در حال آماده‌سازی کتابخانه موسیقی…", 12, MUTED, false);
         LinearLayout.LayoutParams statusParams = new LinearLayout.LayoutParams(-1, dp(28));
@@ -689,18 +718,51 @@ public final class MainActivity extends Activity {
         shownSongs.clear();
         for (Song song : allSongs) {
             if (favoritesOnly && !favorites.contains(song.id)) continue;
+            if (recentOnly && !listeningHistory.contains(song.id)) continue;
+            if (popularOnly && (!playCounts.containsKey(song.id) || playCounts.get(song.id) < 2)) continue;
             if (selectedGenre != MusicGenre.ALL && genreFor(song) != selectedGenre) continue;
             String haystack = normalizeSearch(song.title + " " + song.artist + " " + song.album);
             if (!query.isEmpty() && !matchesSmartSearch(haystack, query)) continue;
             shownSongs.add(song);
         }
+        applyLibrarySort();
         adapter.notifyDataSetChanged();
         updateGenreTabStyles();
         applyThemeForGenre(selectedGenre == MusicGenre.ALL ? MusicGenre.OTHER : selectedGenre);
         if (statusText != null) {
             if (allSongs.isEmpty()) statusText.setText("هنوز آهنگی پیدا نشده؛ اجازه دسترسی یا وجود فایل موسیقی را بررسی کن.");
-            else statusText.setText(shownSongs.size() + " آهنگ  •  " + (selectedGenre == MusicGenre.ALL ? "همه سبک‌ها" : selectedGenre.label));
+            else statusText.setText(shownSongs.size() + " آهنگ  •  " +
+                    (favoritesOnly ? "علاقه‌مندی‌ها" : recentOnly ? "اخیراً پخش‌شده" :
+                    popularOnly ? "پرمخاطب‌ترین‌ها" : selectedGenre == MusicGenre.ALL ? "همه سبک‌ها" : selectedGenre.label));
         }
+    }
+
+    private void openSortDialog() {
+        String[] options = {"نام آهنگ (الفبایی)", "نام خواننده", "مدت زمان", "بیشترین پخش", "آخرین پخش‌شده‌ها"};
+        new AlertDialog.Builder(this).setTitle("مرتب‌سازی کتابخانه")
+                .setSingleChoiceItems(options, sortMode, (dialog, which) -> {
+                    sortMode = which;
+                    getPreferences(MODE_PRIVATE).edit().putInt("library_sort_mode", sortMode).apply();
+                    applyLibrarySort();
+                    if (adapter != null) adapter.notifyDataSetChanged();
+                    dialog.dismiss();
+                    Toast.makeText(this, "ترتیب آهنگ‌ها تغییر کرد", Toast.LENGTH_SHORT).show();
+                }).setNegativeButton("بستن", null).show();
+    }
+
+    private void applyLibrarySort() {
+        Collections.sort(shownSongs, (a, b) -> {
+            switch (sortMode) {
+                case 1: return a.artist.compareToIgnoreCase(b.artist);
+                case 2: return Long.compare(b.duration, a.duration);
+                case 3: return Integer.compare(
+                        playCounts.containsKey(b.id) ? playCounts.get(b.id) : 0,
+                        playCounts.containsKey(a.id) ? playCounts.get(a.id) : 0);
+                case 4: return Integer.compare(listeningHistory.indexOf(a.id) < 0 ? Integer.MAX_VALUE : listeningHistory.indexOf(a.id),
+                        listeningHistory.indexOf(b.id) < 0 ? Integer.MAX_VALUE : listeningHistory.indexOf(b.id));
+                default: return a.title.compareToIgnoreCase(b.title);
+            }
+        });
     }
 
     private void playSong(int position) {
