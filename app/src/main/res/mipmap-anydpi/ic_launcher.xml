@@ -4,31 +4,17 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-
     <path android:fillColor="#11111B" android:pathData="M0,0h108v108h-108z" />
-
-    <!-- Keep the legacy launcher icon identical to the adaptive NAVA artwork. -->
-    <path
-        android:fillColor="#16D9D2"
-        android:pathData="M8,55 C15,55 18,53 21,45 C24,37 27,37 30,46 C33,55 37,57 41,49 C45,41 48,30 52,30 C56,30 58,47 62,51 L62,65 C57,62 55,53 52,53 C48,53 45,68 40,72 C35,76 31,68 28,61 C25,55 23,57 20,62 C17,67 13,67 8,67 Z" />
-
-    <path
-        android:fillColor="#4169FF"
-        android:pathData="M30,53 C36,53 40,44 44,35 C48,26 51,25 55,34 C59,43 61,52 66,55 L66,68 C61,65 58,58 55,56 C51,53 49,65 45,72 C40,80 35,75 32,66 Z" />
-
-    <path
-        android:fillColor="#A51BFF"
-        android:pathData="M48,52 C54,52 57,29 61,19 C64,11 68,12 71,23 L79,47 L79,69 C74,64 70,46 67,43 C64,40 62,60 57,70 C54,76 50,74 48,68 Z" />
-
-    <path
-        android:fillColor="#F01891"
-        android:pathData="M58,27 C58,21 62,17 68,17 L78,17 L78,88 L68,88 C62,88 58,84 58,78 Z" />
-
-    <path
-        android:fillColor="#FF4B3E"
-        android:pathData="M68,17 L78,17 C84,17 88,20 91,26 C94,32 95,40 95,49 L95,88 L81,88 L81,49 C81,42 79,38 74,38 L68,38 Z" />
-
-    <path
-        android:fillColor="#FF941F"
-        android:pathData="M78,17 L83,17 C98,17 103,29 103,47 L103,88 L91,88 L91,48 C91,36 87,30 78,30 Z" />
+    <group
+        android:scaleX="0.66"
+        android:scaleY="0.66"
+        android:pivotX="54"
+        android:pivotY="54">
+        <path android:fillColor="#16D9D2" android:pathData="M8,55 C15,55 18,53 21,45 C24,37 27,37 30,46 C33,55 37,57 41,49 C45,41 48,30 52,30 C56,30 58,47 62,51 L62,65 C57,62 55,53 52,53 C48,53 45,68 40,72 C35,76 31,68 28,61 C25,55 23,57 20,62 C17,67 13,67 8,67 Z" />
+        <path android:fillColor="#4169FF" android:pathData="M30,53 C36,53 40,44 44,35 C48,26 51,25 55,34 C59,43 61,52 66,55 L66,68 C61,65 58,58 55,56 C51,53 49,65 45,72 C40,80 35,75 32,66 Z" />
+        <path android:fillColor="#A51BFF" android:pathData="M48,52 C54,52 57,29 61,19 C64,11 68,12 71,23 L79,47 L79,69 C74,64 70,46 67,43 C64,40 62,60 57,70 C54,76 50,74 48,68 Z" />
+        <path android:fillColor="#F01891" android:pathData="M58,27 C58,21 62,17 68,17 L78,17 L78,88 L68,88 C62,88 58,84 58,78 Z" />
+        <path android:fillColor="#FF4B3E" android:pathData="M68,17 L78,17 C84,17 88,20 91,26 C94,32 95,40 95,49 L95,88 L81,88 L81,49 C81,42 79,38 74,38 L68,38 Z" />
+        <path android:fillColor="#FF941F" android:pathData="M78,17 L83,17 C98,17 103,29 103,47 L103,88 L91,88 L91,48 C91,36 87,30 78,30 Z" />
+    </group>
 </vector>
