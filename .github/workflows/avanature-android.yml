@@ -25,13 +25,13 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          accept-android-sdk-licenses: true
-
-      - name: Install Android 35 platform
-        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          export ANDROID_HOME="${ANDROID_HOME:-${ANDROID_SDK_ROOT}}"
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
 
       - name: Extract the standalone app project
         run: mkdir -p nature-sounds && tar -xJf AvaNature-Source.tar.xz -C nature-sounds
