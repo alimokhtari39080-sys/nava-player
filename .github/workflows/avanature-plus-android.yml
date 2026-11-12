@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   build-apk:
-    name: Build AvaNature Plus debug APK
+    name: Build and smoke-test AvaNature Plus
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source
@@ -36,6 +36,34 @@ jobs:
           gradle-version: '8.11.1'
       - name: Assemble standalone Plus APK
         run: gradle -p AvaNaturePlus --no-daemon :app:assembleDebug
+      - name: Smoke-test app launch on Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: |
+            APK="AvaNaturePlus/app/build/outputs/apk/debug/app-debug.apk"
+            PACKAGE="com.avanature.soundscape.v2.plus"
+            adb install -r "$APK"
+            adb shell pm grant "$PACKAGE" android.permission.POST_NOTIFICATIONS || true
+            adb logcat -c
+            adb shell monkey -p "$PACKAGE" -c android.intent.category.LAUNCHER 1
+            sleep 8
+            if ! adb shell pidof "$PACKAGE" >/dev/null; then
+              adb logcat -d -v time > app-crash-log.txt
+              echo "AvaNature Plus process exited after launch."
+              grep -A 30 -B 5 -E "FATAL EXCEPTION|AndroidRuntime" app-crash-log.txt || true
+              exit 1
+            fi
+            adb logcat -d -v time > app-smoke-log.txt
+            if grep -q "FATAL EXCEPTION" app-smoke-log.txt; then
+              grep -A 30 -B 5 "FATAL EXCEPTION" app-smoke-log.txt
+              exit 1
+            fi
+            echo "AvaNature Plus main activity remained running for 8 seconds."
       - name: Upload installable Plus APK
         uses: actions/upload-artifact@v4
         with:
