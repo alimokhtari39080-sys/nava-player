@@ -93,8 +93,9 @@ final class SoundscapeEngine {
                         for (Map.Entry<String, Layer> entry : layers.entrySet()) {
                             mixed += render(entry.getKey(), entry.getValue());
                         }
-                        mixed *= master * 2.0f; // Raise the generated ambience to a clearly audible level.
-                        mixed = Math.max(-0.92f, Math.min(0.92f, mixed));
+                        // Apply substantial make-up gain and a soft-knee limiter so quiet synthesized layers are audible.
+                        mixed *= master * 9.0f;
+                        mixed = (float) Math.tanh(mixed) * 0.82f;
                         short sample = (short) (mixed * 32767f);
                         output[i * 2] = sample;
                         output[i * 2 + 1] = sample;
