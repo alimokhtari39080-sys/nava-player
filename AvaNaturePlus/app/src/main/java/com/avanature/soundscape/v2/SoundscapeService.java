@@ -41,6 +41,7 @@ public class SoundscapeService extends Service {
             } catch (RuntimeException ex) {
                 Log.w(TAG, "Could not remove playback notification", ex);
             }
+            stopSelf(startId);
             return START_NOT_STICKY;
         }
 
