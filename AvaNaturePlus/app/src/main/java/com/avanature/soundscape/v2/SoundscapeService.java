@@ -4,6 +4,9 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
+import android.media.AudioManager;
 import android.app.Service;
 import android.content.Intent;
 import android.os.Build;
@@ -23,10 +26,25 @@ public class SoundscapeService extends Service {
     private static final String TAG = "AvaNatureService";
 
     private SoundscapeEngine engine;
+    private AudioManager audioManager;
+    private AudioFocusRequest focusRequest;
+    private final AudioManager.OnAudioFocusChangeListener focusListener = change ->
+            Log.i(TAG, "Audio focus changed: " + change);
 
     @Override public void onCreate() {
         super.onCreate();
         engine = new SoundscapeEngine();
+        audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
+        if (audioManager != null && Build.VERSION.SDK_INT >= 26) {
+            focusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                    .setAudioAttributes(new AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_MEDIA)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                            .build())
+                    .setOnAudioFocusChangeListener(focusListener)
+                    .setWillPauseWhenDucked(false)
+                    .build();
+        }
         createChannel();
     }
 
@@ -47,6 +65,14 @@ public class SoundscapeService extends Service {
         }
 
         try {
+            if (audioManager != null) {
+                int focus = Build.VERSION.SDK_INT >= 26 && focusRequest != null
+                        ? audioManager.requestAudioFocus(focusRequest)
+                        : audioManager.requestAudioFocus(focusListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
+                Log.i(TAG, "Audio focus request result: " + focus
+                        + "; media volume=" + audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+                        + "/" + audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC));
+            }
             startForeground(2402, makeNotification());
         } catch (RuntimeException ex) {
             Log.e(TAG, "Could not start foreground playback service; app will remain open.", ex);
@@ -83,6 +109,12 @@ public class SoundscapeService extends Service {
     }
 
     private void resetEngine() {
+        if (audioManager != null) {
+            try {
+                if (Build.VERSION.SDK_INT >= 26 && focusRequest != null) audioManager.abandonAudioFocusRequest(focusRequest);
+                else audioManager.abandonAudioFocus(focusListener);
+            } catch (RuntimeException ignored) { }
+        }
         if (engine != null) {
             try { engine.close(); } catch (RuntimeException ex) {
                 Log.w(TAG, "Audio engine cleanup failed", ex);
