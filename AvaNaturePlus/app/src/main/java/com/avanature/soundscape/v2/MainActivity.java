@@ -5,6 +5,13 @@ import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.LinearGradient;
+import android.graphics.Shader;
+import android.view.View;
+import android.widget.FrameLayout;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
@@ -31,6 +38,7 @@ import java.util.Set;
 
 public class MainActivity extends Activity {
     private LinearLayout root, content, themeRow, cardsBox, miniPanel;
+    private ScenicBackdrop scenicBackdrop;
     private TextView heroTitle, heroSubtitle, playerStatus, timerStatus, favoritesTab, homeTab;
     private EditText searchInput;
     private SeekBar volumeBar;
@@ -109,13 +117,19 @@ public class MainActivity extends Activity {
 
         heroTitle = text("", 22, Color.WHITE, true);
         heroSubtitle = text("", 12, 0xffe2eee7, false);
-        LinearLayout hero = new LinearLayout(this);
-        hero.setOrientation(LinearLayout.VERTICAL);
-        hero.setGravity(Gravity.BOTTOM);
-        hero.setPadding(dp(18), dp(14), dp(18), dp(16));
-        hero.addView(heroTitle);
-        hero.addView(heroSubtitle);
-        content.addView(hero, new LinearLayout.LayoutParams(-1, dp(132)));
+        FrameLayout hero = new FrameLayout(this);
+        scenicBackdrop = new ScenicBackdrop(this);
+        hero.addView(scenicBackdrop, new FrameLayout.LayoutParams(-1, -1));
+        LinearLayout heroText = new LinearLayout(this);
+        heroText.setOrientation(LinearLayout.VERTICAL);
+        heroText.setGravity(Gravity.BOTTOM);
+        heroText.setPadding(dp(18), dp(14), dp(18), dp(16));
+        heroText.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[]{0x22000000, 0x99000000}));
+        heroText.addView(heroTitle);
+        heroText.addView(heroSubtitle);
+        hero.addView(heroText, new FrameLayout.LayoutParams(-1, -1));
+        content.addView(hero, new LinearLayout.LayoutParams(-1, dp(174)));
         hero.setTag("hero");
 
         TextView themeHeading = text("تم‌های اختصاصی", 16, Color.WHITE, true);
@@ -255,6 +269,7 @@ public class MainActivity extends Activity {
                 new int[]{selectedTheme.color1, selectedTheme.color2, 0xff06131a}));
         View hero = findHero();
         if (hero != null) hero.setBackground(round(selectedTheme.color1, selectedTheme.color2, 0, 22));
+        if (scenicBackdrop != null) scenicBackdrop.setTheme(selectedTheme.id, selectedTheme.color1, selectedTheme.color2);
         heroTitle.setText(selectedTheme.emoji + "  " + selectedTheme.name);
         heroSubtitle.setText(selectedTheme.subtitle + "  •  " + selectedTheme.items.size() + " صدا");
         themeRow.removeAllViews();
@@ -507,6 +522,35 @@ public class MainActivity extends Activity {
         return Color.rgb((int)(Color.red(a)*f+Color.red(b)*g),(int)(Color.green(a)*f+Color.green(b)*g),(int)(Color.blue(a)*f+Color.blue(b)*g));
     }
     private int dp(float value) { return (int)(value*getResources().getDisplayMetrics().density+0.5f); }
+
+    private final class ScenicBackdrop extends View {
+        private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private String scene = "rain";
+        private int top = 0xff123f58, bottom = 0xff071d31;
+        private long start = System.currentTimeMillis();
+        ScenicBackdrop(android.content.Context context) { super(context); setLayerType(View.LAYER_TYPE_SOFTWARE, null); }
+        void setTheme(String id, int a, int b) { scene=id; top=a; bottom=b; start=System.currentTimeMillis(); invalidate(); }
+        @Override protected void onDraw(Canvas c) {
+            super.onDraw(c);
+            float w=getWidth(), h=getHeight(), t=(System.currentTimeMillis()-start)/1000f;
+            p.setShader(new LinearGradient(0,0,w,h,top,bottom,Shader.TileMode.CLAMP)); c.drawRect(0,0,w,h,p); p.setShader(null);
+            if (scene.equals("rain") || scene.equals("storm") || scene.equals("bass")) {
+                p.setColor(0x5549b9df);
+                for(int i=0;i<85;i++){ float x=(i*71f)%w; float y=((i*47f+t*(scene.equals("storm")?310:190))%(h+40))-20; p.setStrokeWidth(i%4==0?2.2f:1.2f); c.drawLine(x,y,x-7,y+17,p); }
+                p.setColor(0x334bd4ed);
+                for(int i=0;i<18;i++){ float x=(i*97f)%w; float y=(i*59f+(float)Math.sin(t+i)*5)%h; c.drawCircle(x,y,2.2f,p); }
+                if(scene.equals("storm") && Math.sin(t*1.7)>0.985){ p.setColor(0x55ffffff); c.drawRect(0,0,w,h,p); }
+            } else if(scene.equals("forest") || scene.equals("animals") || scene.equals("fire")) {
+                p.setColor(0x55301820);
+                for(int i=0;i<8;i++){ float x=i*w/7f; Path tree=new Path(); tree.moveTo(x,h); tree.lineTo(x-34,h*.62f); tree.lineTo(x-12,h*.68f); tree.lineTo(x,h*.35f); tree.lineTo(x+16,h*.68f); tree.lineTo(x+36,h*.62f); tree.close(); c.drawPath(tree,p); }
+                p.setColor(0x335fe0a2); for(int i=0;i<22;i++){float x=(i*61f+t*7)%w,y=(i*37f)%h;c.drawCircle(x,y,1.6f,p);}
+            } else {
+                p.setColor(0x554bd4ed);
+                for(int i=0;i<5;i++){float y=h*(.56f+i*.09f)+(float)Math.sin(t*1.2+i)*5;c.drawOval(-20,y,w+20,y+12,p);}
+            }
+            postInvalidateDelayed(45);
+        }
+    }
 
     private static final class SoundItem {
         final String id,name,emoji,description;
