@@ -1,1 +1,1 @@
-AvaNature Plus 2.0.1 — build configuration uses Gradle 8.11.1 with Android Gradle Plugin 8.9.1.
+AvaNature Plus 2.0.1 — AudioTrack initialization is guarded, foreground playback service is crash-resilient, startup recovery screen added, build and lint verification enabled.
