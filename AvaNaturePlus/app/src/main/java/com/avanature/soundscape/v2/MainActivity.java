@@ -47,9 +47,9 @@ public class MainActivity extends Activity {
     private final Set<String> favoriteIds = new LinkedHashSet<>();
     private SharedPreferences prefs;
     private ThemeData selectedTheme;
-    private CountDownTimer sleepTimer;
+    private CountDownTimer sleepTimer, testSoundTimer;
     private boolean showFavorites = false;
-    private float masterVolume = 0.78f;
+    private float masterVolume = 0.90f;
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -209,6 +209,9 @@ public class MainActivity extends Activity {
         TextView stop = pill("■  توقف همه", 12, 0xffffd8cc);
         stop.setOnClickListener(v -> clearSounds());
         controlLine.addView(stop);
+        TextView test = pill("▶  تست صدا", 11, 0xffbdf4cb);
+        test.setOnClickListener(v -> playTestSound());
+        controlLine.addView(test);
         timerStatus = text("  ⏱ بدون تایمر", 11, 0xffc6d7d1, false);
         LinearLayout.LayoutParams timerLp = new LinearLayout.LayoutParams(0, -2, 1);
         timerLp.gravity = Gravity.CENTER_VERTICAL;
@@ -381,14 +384,30 @@ public class MainActivity extends Activity {
     }
 
     private void playPreset(String... ids) {
-        // A preset starts with one clear lead sound; extra layers are always user-added.
-        clearSounds();
+        // Replace the current mix in one service command; do not race CLEAR against ADD.
         if (ids != null && ids.length > 0 && ids[0] != null) {
+            activeIds.clear();
             activeIds.add(ids[0]);
-            sendAdd(ids[0]);
+            sendReplace(ids[0]);
         }
         renderCards();
         updatePlayerStatus();
+    }
+
+    private void sendReplace(String id) {
+        Intent i = new Intent(this, SoundscapeService.class).setAction(SoundscapeService.ACTION_REPLACE);
+        i.putExtra(SoundscapeService.EXTRA_ID, id);
+        i.putExtra(SoundscapeService.EXTRA_GAIN, 0.90f);
+        startPlaybackService(i);
+    }
+
+    private void playTestSound() {
+        if (testSoundTimer != null) testSoundTimer.cancel();
+        sendAdd("test_tone");
+        testSoundTimer = new CountDownTimer(2200, 2200) {
+            @Override public void onTick(long millisUntilFinished) { }
+            @Override public void onFinish() { sendRemove("test_tone"); }
+        }.start();
     }
 
     private void toggleSound(SoundItem item) {
@@ -406,7 +425,7 @@ public class MainActivity extends Activity {
     private void sendAdd(String id) {
         Intent i = new Intent(this, SoundscapeService.class).setAction(SoundscapeService.ACTION_ADD);
         i.putExtra(SoundscapeService.EXTRA_ID, id);
-        i.putExtra(SoundscapeService.EXTRA_GAIN, 0.68f);
+        i.putExtra(SoundscapeService.EXTRA_GAIN, 0.90f);
         startPlaybackService(i);
     }
     private void sendRemove(String id) {
@@ -652,6 +671,7 @@ public class MainActivity extends Activity {
 
     @Override protected void onDestroy() {
         if (sleepTimer != null) sleepTimer.cancel();
+        if (testSoundTimer != null) testSoundTimer.cancel();
         super.onDestroy();
     }
 }
