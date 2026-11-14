@@ -25,7 +25,9 @@ final class SoundscapeEngine {
 
     synchronized void add(String id, float gain) {
         if (id == null || id.trim().isEmpty()) return;
-        layers.putIfAbsent(id, new Layer(Math.max(0f, Math.min(1f, gain))));
+        if (!layers.containsKey(id)) {
+            layers.put(id, new Layer(Math.max(0f, Math.min(1f, gain))));
+        }
         ensureStarted();
     }
 
