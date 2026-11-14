@@ -55,7 +55,7 @@ final class SoundscapeEngine {
         AudioTrack localTrack = null;
         try {
             int minimum = AudioTrack.getMinBufferSize(
-                    RATE, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT);
+                    RATE, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT);
             if (minimum <= 0) minimum = BLOCK * 4;
             int bufferBytes = Math.max(minimum, BLOCK * 8);
 
@@ -79,9 +79,11 @@ final class SoundscapeEngine {
             }
 
             track = localTrack;
+            localTrack.setVolume(1.0f);
             localTrack.play();
+            Log.i(TAG, "AudioTrack is playing: 44.1 kHz stereo PCM");
 
-            short[] output = new short[BLOCK];
+            short[] output = new short[BLOCK * 2];
             while (running) {
                 if (layers.isEmpty()) {
                     Arrays.fill(output, (short) 0);
@@ -91,9 +93,11 @@ final class SoundscapeEngine {
                         for (Map.Entry<String, Layer> entry : layers.entrySet()) {
                             mixed += render(entry.getKey(), entry.getValue());
                         }
-                        mixed *= master * 0.48f;
+                        mixed *= master * 2.0f; // Raise the generated ambience to a clearly audible level.
                         mixed = Math.max(-0.92f, Math.min(0.92f, mixed));
-                        output[i] = (short) (mixed * 32767f);
+                        short sample = (short) (mixed * 32767f);
+                        output[i * 2] = sample;
+                        output[i * 2 + 1] = sample;
                     }
                 }
                 int written = localTrack.write(output, 0, output.length, AudioTrack.WRITE_BLOCKING);
@@ -127,6 +131,11 @@ final class SoundscapeEngine {
         float noise = random.nextFloat() * 2f - 1f;
         double time = layer.phase;
         layer.phase += 1.0 / RATE;
+
+        if (id.equals("test_tone")) {
+            return (float) (Math.sin(2 * Math.PI * 523.25 * time) * 0.72
+                    + Math.sin(2 * Math.PI * 784.88 * time) * 0.12) * layer.gain;
+        }
 
         if (id.startsWith("rain") || id.equals("bass_rain") || id.equals("storm_wind")) {
             layer.low += 0.012f * (noise - layer.low);
