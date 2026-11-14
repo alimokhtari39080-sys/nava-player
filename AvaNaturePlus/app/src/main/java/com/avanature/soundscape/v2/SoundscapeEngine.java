@@ -67,7 +67,7 @@ final class SoundscapeEngine {
                     .setAudioFormat(new AudioFormat.Builder()
                             .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
                             .setSampleRate(RATE)
-                            .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                            .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
                             .build())
                     .setBufferSizeInBytes(bufferBytes)
                     .setTransferMode(AudioTrack.MODE_STREAM)
@@ -81,7 +81,7 @@ final class SoundscapeEngine {
             track = localTrack;
             localTrack.setVolume(1.0f);
             localTrack.play();
-            Log.i(TAG, "AudioTrack is playing: 44.1 kHz stereo PCM");
+            Log.i(TAG, "AudioTrack playing with matching 44.1 kHz stereo format; state=" + localTrack.getPlayState() + ", session=" + localTrack.getAudioSessionId());
 
             short[] output = new short[BLOCK * 2];
             while (running) {
