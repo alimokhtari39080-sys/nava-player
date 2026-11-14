@@ -14,6 +14,7 @@ public class SoundscapeService extends Service {
     static final String ACTION_ADD = "com.avanature.soundscape.v2.ADD";
     static final String ACTION_REMOVE = "com.avanature.soundscape.v2.REMOVE";
     static final String ACTION_CLEAR = "com.avanature.soundscape.v2.CLEAR";
+    static final String ACTION_REPLACE = "com.avanature.soundscape.v2.REPLACE";
     static final String ACTION_VOLUME = "com.avanature.soundscape.v2.VOLUME";
     static final String EXTRA_ID = "sound_id";
     static final String EXTRA_GAIN = "sound_gain";
@@ -55,7 +56,12 @@ public class SoundscapeService extends Service {
 
         try {
             if (engine == null) engine = new SoundscapeEngine();
-            if (ACTION_ADD.equals(action)) {
+            if (ACTION_REPLACE.equals(action)) {
+                String id = intent.getStringExtra(EXTRA_ID);
+                float gain = intent.getFloatExtra(EXTRA_GAIN, 0.90f);
+                engine.clear();
+                if (id != null) engine.add(id, gain);
+            } else if (ACTION_ADD.equals(action)) {
                 String id = intent.getStringExtra(EXTRA_ID);
                 float gain = intent.getFloatExtra(EXTRA_GAIN, 0.60f);
                 if (id != null) engine.add(id, gain);
