@@ -531,25 +531,107 @@ public class MainActivity extends Activity {
         private long start = System.currentTimeMillis();
         ScenicBackdrop(android.content.Context context) { super(context); setLayerType(View.LAYER_TYPE_SOFTWARE, null); }
         void setTheme(String id, int a, int b) { scene=id; top=a; bottom=b; start=System.currentTimeMillis(); invalidate(); }
+        private void color(int value) { p.setColor(value); p.setShader(null); p.setStyle(Paint.Style.FILL); }
         @Override protected void onDraw(Canvas c) {
             super.onDraw(c);
             float w=getWidth(), h=getHeight(), t=(System.currentTimeMillis()-start)/1000f;
-            p.setShader(new LinearGradient(0,0,w,h,top,bottom,Shader.TileMode.CLAMP)); c.drawRect(0,0,w,h,p); p.setShader(null);
+            p.setShader(new LinearGradient(0,0,w,h,top,bottom,Shader.TileMode.CLAMP));
+            c.drawRect(0,0,w,h,p); p.setShader(null);
+
             if (scene.equals("rain") || scene.equals("storm") || scene.equals("bass")) {
-                p.setColor(0x5549b9df);
-                for(int i=0;i<85;i++){ float x=(i*71f)%w; float y=((i*47f+t*(scene.equals("storm")?310:190))%(h+40))-20; p.setStrokeWidth(i%4==0?2.2f:1.2f); c.drawLine(x,y,x-7,y+17,p); }
-                p.setColor(0x334bd4ed);
-                for(int i=0;i<18;i++){ float x=(i*97f)%w; float y=(i*59f+(float)Math.sin(t+i)*5)%h; c.drawCircle(x,y,2.2f,p); }
-                if(scene.equals("storm") && Math.sin(t*1.7)>0.985){ p.setColor(0x55ffffff); c.drawRect(0,0,w,h,p); }
-            } else if(scene.equals("forest") || scene.equals("animals") || scene.equals("fire")) {
-                p.setColor(0x55301820);
-                for(int i=0;i<8;i++){ float x=i*w/7f; Path tree=new Path(); tree.moveTo(x,h); tree.lineTo(x-34,h*.62f); tree.lineTo(x-12,h*.68f); tree.lineTo(x,h*.35f); tree.lineTo(x+16,h*.68f); tree.lineTo(x+36,h*.62f); tree.close(); c.drawPath(tree,p); }
-                p.setColor(0x335fe0a2); for(int i=0;i<22;i++){float x=(i*61f+t*7)%w,y=(i*37f)%h;c.drawCircle(x,y,1.6f,p);}
+                // Moving cloud bands, slanted rain, and tiny splash rings.
+                color(0x443b5267);
+                for(int k=0;k<5;k++) {
+                    float x=((k*119f+t*(scene.equals("storm")?13:5))%(w+150))-75;
+                    c.drawOval(x,h*.08f+(k%2)*h*.13f,x+145,h*.28f+(k%2)*h*.13f,p);
+                }
+                color(scene.equals("bass")?0x775a9cb9:0x885bc9e8);
+                for(int i=0;i<125;i++) {
+                    float speed=scene.equals("storm")?330:scene.equals("bass")?115:215;
+                    float x=(i*71f+(float)Math.sin(t*.7+i)*7)%w;
+                    float y=((i*47f+t*speed)%(h+50))-25;
+                    p.setStrokeWidth(i%5==0?2.3f:1.15f);
+                    p.setStrokeCap(Paint.Cap.ROUND);
+                    c.drawLine(x,y,x-8,y+19,p);
+                }
+                color(0x665fe5f4);
+                for(int i=0;i<18;i++) {
+                    float x=(i*97f+23)%w, y=(i*59f+(float)Math.sin(t*2+i)*5)%h;
+                    float pulse=2+(float)Math.abs(Math.sin(t*3+i))*2;
+                    p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(1.2f);
+                    c.drawCircle(x,y,pulse,p); p.setStyle(Paint.Style.FILL);
+                }
+                if(scene.equals("storm") && Math.sin(t*1.7)>0.985) {
+                    color(0x66ffffff); c.drawRect(0,0,w,h,p);
+                    color(0xffd7e8f2);
+                    Path bolt=new Path(); bolt.moveTo(w*.72f,0); bolt.lineTo(w*.66f,h*.32f);
+                    bolt.lineTo(w*.71f,h*.30f); bolt.lineTo(w*.62f,h*.58f);
+                    bolt.lineTo(w*.67f,h*.34f); bolt.lineTo(w*.63f,h*.35f); bolt.close(); c.drawPath(bolt,p);
+                }
+            } else if (scene.equals("forest") || scene.equals("animals") || scene.equals("fire")) {
+                // Distant forest layers and swaying pine silhouettes.
+                color(0x3346a77a); c.drawOval(-w*.2f,h*.43f,w*.65f,h*.9f,p);
+                c.drawOval(w*.35f,h*.38f,w*1.2f,h*.92f,p);
+                for(int layer=0;layer<2;layer++) {
+                    color(layer==0?0x55305243:0x99401f25);
+                    for(int i=0;i<9;i++) {
+                        float x=i*w/8f+(float)Math.sin(t*.55+i*1.7)*4;
+                        float base=h*(layer==0?.82f:.99f), height=h*(layer==0?.45f:.58f);
+                        float sway=(float)Math.sin(t*.8+i)*4;
+                        Path tree=new Path(); tree.moveTo(x-3,base); tree.lineTo(x-27+sway,base-height*.45f);
+                        tree.lineTo(x-12+sway,base-height*.42f); tree.lineTo(x,base-height);
+                        tree.lineTo(x+12+sway,base-height*.42f); tree.lineTo(x+28+sway,base-height*.45f);
+                        tree.close(); c.drawPath(tree,p);
+                        color(0x66402720); c.drawRect(x-2,base-height*.28f,x+2,base,p);
+                    }
+                }
+                color(0x779ce5a7);
+                for(int i=0;i<28;i++) {
+                    float x=(i*61f+t*(4+(i%4))*((i%2==0)?1:-1))%w;
+                    float y=(i*37f+(float)Math.sin(t+i)*7)%h;
+                    c.drawCircle(x,y,1.2f+(i%3)*.45f,p);
+                }
+                if(scene.equals("fire")) {
+                    // Foreground campfire with independently flickering tongues.
+                    color(0x774a2418); c.drawOval(w*.35f,h*.72f,w*.67f,h*.98f,p);
+                    for(int i=0;i<7;i++) {
+                        float x=w*(.42f+i*.025f), flick=(float)Math.sin(t*7+i*2)*7;
+                        Path flame=new Path(); flame.moveTo(x-9,h*.88f);
+                        flame.cubicTo(x-20,h*.77f+flick,x+8,h*.69f+flick,x,h*.58f+flick);
+                        flame.cubicTo(x+21,h*.73f+flick,x+15,h*.84f,x+9,h*.9f); flame.close();
+                        color(i%2==0?0xffff8a32:0xffffc15a); c.drawPath(flame,p);
+                        color(0xffffe6a0); c.drawOval(x-3,h*.77f+flick,x+4,h*.88f,p);
+                    }
+                }
+            } else if (scene.equals("ocean") || scene.equals("calm")) {
+                // Rolling ocean swells with moving foam highlights.
+                for(int i=0;i<7;i++) {
+                    float base=h*(.48f+i*.085f);
+                    Path wave=new Path(); wave.moveTo(0,base);
+                    for(int x=0;x<=w;x+=8) {
+                        float y=base+(float)Math.sin(x*.018-t*(1.2+i*.08)+i)*7
+                                +(float)Math.sin(x*.035-t*.7+i)*3;
+                        wave.lineTo(x,y);
+                    }
+                    wave.lineTo(w,h); wave.lineTo(0,h); wave.close();
+                    color(i%2==0?0x5549d1d9:0x4450a6ce); c.drawPath(wave,p);
+                    color(0x887ee9e2); p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(1.4f);
+                    for(int j=0;j<4;j++) {
+                        float x=(j*w/4f+(t*24+i*19))%(w+20);
+                        float y=base+(float)Math.sin(x*.018-t*1.2+i)*7;
+                        c.drawLine(x,y,x+13,y-1.5f,p);
+                    }
+                    p.setStyle(Paint.Style.FILL);
+                }
             } else {
-                p.setColor(0x554bd4ed);
-                for(int i=0;i<5;i++){float y=h*(.56f+i*.09f)+(float)Math.sin(t*1.2+i)*5;c.drawOval(-20,y,w+20,y+12,p);}
+                // Ambient night sky and slow drifting light particles.
+                color(0x33d7e9d7);
+                for(int i=0;i<38;i++) {
+                    float x=(i*53f+t*(i%3+1)*2)%w, y=(i*31f+(float)Math.sin(t*.4+i)*6)%h;
+                    c.drawCircle(x,y,1.1f+(i%3)*.4f,p);
+                }
             }
-            postInvalidateDelayed(45);
+            postInvalidateDelayed(40);
         }
     }
 
