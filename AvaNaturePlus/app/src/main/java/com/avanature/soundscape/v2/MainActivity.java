@@ -420,8 +420,7 @@ public class MainActivity extends Activity {
             if (testToneGenerator != null) testToneGenerator.release();
             testToneGenerator = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
             testToneGenerator.startTone(ToneGenerator.TONE_PROP_BEEP, 850);
-            sendReplace("test_tone");
-            android.widget.Toast.makeText(this, "تست خروجی: صدای رسانه " + current + " از " + max, android.widget.Toast.LENGTH_LONG).show();
+            android.widget.Toast.makeText(this, "بوق آزمایشی مستقل پخش شد. صدای رسانه " + current + " از " + max, android.widget.Toast.LENGTH_LONG).show();
         } catch (RuntimeException error) {
             android.util.Log.e("AvaNatureTest", "ToneGenerator test failed", error);
             android.widget.Toast.makeText(this, "تست صدای گوشی ناموفق بود؛ بلوتوث و خروجی رسانه را بررسی کن.", android.widget.Toast.LENGTH_LONG).show();
@@ -430,7 +429,6 @@ public class MainActivity extends Activity {
         testSoundTimer = new CountDownTimer(1200, 1200) {
             @Override public void onTick(long millisUntilFinished) { }
             @Override public void onFinish() {
-                sendRemove("test_tone");
                 if (testToneGenerator != null) {
                     testToneGenerator.release();
                     testToneGenerator = null;
