@@ -4,46 +4,45 @@ import android.media.AudioAttributes;
 import android.media.AudioFormat;
 import android.media.AudioTrack;
 import android.os.Process;
+import android.util.Log;
+
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
 final class SoundscapeEngine {
+    private static final String TAG = "AvaNatureAudio";
     private static final int RATE = 44100;
     private static final int BLOCK = 1024;
+
     private final Map<String, Layer> layers = new ConcurrentHashMap<>();
     private final Random random = new Random();
-    private volatile boolean running = false;
+    private volatile boolean running;
     private volatile float master = 0.78f;
-    private AudioTrack track;
+    private volatile AudioTrack track;
     private Thread worker;
 
     synchronized void add(String id, float gain) {
-        Layer layer = layers.get(id);
-        if (layer == null) layers.put(id, new Layer(Math.max(0f, Math.min(1f, gain))));
+        if (id == null || id.trim().isEmpty()) return;
+        layers.putIfAbsent(id, new Layer(Math.max(0f, Math.min(1f, gain))));
         ensureStarted();
     }
 
-    void remove(String id) { layers.remove(id); }
-    void setVolume(float v) { master = Math.max(0f, Math.min(1f, v)); }
-    void clear() { layers.clear(); }
+    void remove(String id) {
+        if (id != null) layers.remove(id);
+    }
+
+    void setVolume(float value) {
+        master = Math.max(0f, Math.min(1f, value));
+    }
+
+    void clear() {
+        layers.clear();
+    }
 
     private synchronized void ensureStarted() {
         if (running) return;
-        int min = AudioTrack.getMinBufferSize(RATE, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT);
-        int size = Math.max(min, BLOCK * 4);
-        track = new AudioTrack.Builder()
-                .setAudioAttributes(new AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_MEDIA)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
-                .setAudioFormat(new AudioFormat.Builder()
-                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                        .setSampleRate(RATE)
-                        .setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
-                .setBufferSizeInBytes(size)
-                .setTransferMode(AudioTrack.MODE_STREAM)
-                .build();
-        track.play();
         running = true;
         worker = new Thread(this::renderLoop, "AvaNature-Audio");
         worker.setPriority(Process.THREAD_PRIORITY_AUDIO);
@@ -51,160 +50,224 @@ final class SoundscapeEngine {
     }
 
     private void renderLoop() {
-        short[] out = new short[BLOCK];
-        while (running) {
-            if (layers.isEmpty()) {
-                java.util.Arrays.fill(out, (short) 0);
-            } else {
-                for (int i = 0; i < BLOCK; i++) {
-                    float mixed = 0f;
-                    for (Map.Entry<String, Layer> entry : layers.entrySet()) {
-                        mixed += render(entry.getKey(), entry.getValue());
+        AudioTrack localTrack = null;
+        try {
+            int minimum = AudioTrack.getMinBufferSize(
+                    RATE, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT);
+            if (minimum <= 0) minimum = BLOCK * 4;
+            int bufferBytes = Math.max(minimum, BLOCK * 8);
+
+            localTrack = new AudioTrack.Builder()
+                    .setAudioAttributes(new AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_MEDIA)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                            .build())
+                    .setAudioFormat(new AudioFormat.Builder()
+                            .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                            .setSampleRate(RATE)
+                            .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                            .build())
+                    .setBufferSizeInBytes(bufferBytes)
+                    .setTransferMode(AudioTrack.MODE_STREAM)
+                    .build();
+
+            if (localTrack.getState() != AudioTrack.STATE_INITIALIZED) {
+                Log.e(TAG, "AudioTrack could not initialize; audio disabled for this session.");
+                return;
+            }
+
+            track = localTrack;
+            localTrack.play();
+
+            short[] output = new short[BLOCK];
+            while (running) {
+                if (layers.isEmpty()) {
+                    Arrays.fill(output, (short) 0);
+                } else {
+                    for (int i = 0; i < BLOCK; i++) {
+                        float mixed = 0f;
+                        for (Map.Entry<String, Layer> entry : layers.entrySet()) {
+                            mixed += render(entry.getKey(), entry.getValue());
+                        }
+                        mixed *= master * 0.48f;
+                        mixed = Math.max(-0.92f, Math.min(0.92f, mixed));
+                        output[i] = (short) (mixed * 32767f);
                     }
-                    mixed *= master * 0.58f;
-                    mixed = Math.max(-0.98f, Math.min(0.98f, mixed));
-                    out[i] = (short) (mixed * 32767f);
+                }
+                int written = localTrack.write(output, 0, output.length, AudioTrack.WRITE_BLOCKING);
+                if (written < 0) {
+                    Log.e(TAG, "AudioTrack write failed: " + written);
+                    break;
                 }
             }
-            AudioTrack t = track;
-            if (t != null && t.getState() == AudioTrack.STATE_INITIALIZED) {
-                t.write(out, 0, out.length, AudioTrack.WRITE_BLOCKING);
-            } else {
-                try { Thread.sleep(10); } catch (InterruptedException ignored) { }
+        } catch (IllegalArgumentException | IllegalStateException | SecurityException ex) {
+            Log.e(TAG, "Audio playback unavailable; keeping the app alive.", ex);
+        } catch (RuntimeException ex) {
+            Log.e(TAG, "Unexpected audio device error; keeping the app alive.", ex);
+        } finally {
+            running = false;
+            track = null;
+            if (localTrack != null) {
+                try {
+                    if (localTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
+                        localTrack.pause();
+                    }
+                    localTrack.flush();
+                } catch (RuntimeException ignored) { }
+                try {
+                    localTrack.release();
+                } catch (RuntimeException ignored) { }
             }
         }
     }
 
-    private float render(String id, Layer l) {
-        float n = random.nextFloat() * 2f - 1f;
-        float t = l.sample++ / (float) RATE;
-        l.phase += 1.0 / RATE;
-        double p = l.phase;
-        float value;
+    private float render(String id, Layer layer) {
+        float noise = random.nextFloat() * 2f - 1f;
+        double time = layer.phase;
+        layer.phase += 1.0 / RATE;
 
         if (id.startsWith("rain") || id.equals("bass_rain") || id.equals("storm_wind")) {
-            l.low += 0.012f * (n - l.low);
-            l.mid += 0.075f * (n - l.mid);
+            layer.low += 0.012f * (noise - layer.low);
+            layer.mid += 0.075f * (noise - layer.mid);
             float drops = random.nextFloat() > (id.equals("rain_heavy") ? 0.986f : 0.996f)
-                    ? (random.nextFloat() * 2f - 1f) * 0.9f : 0f;
-            value = l.low * 0.72f + (l.mid - l.low) * 0.5f + n * 0.10f + drops;
-            if (id.equals("bass_rain")) value = value * 0.25f + (float)Math.sin(2*Math.PI*47*p)*0.48f
-                    + (float)Math.sin(2*Math.PI*71*p)*0.17f + drops*0.25f;
-            if (id.equals("storm_wind")) value = value * 0.72f;
-        } else if (id.equals("deep_thunder") || id.startsWith("thunder") || id.equals("sub_bass")) {
-            l.low += 0.0018f * (n - l.low);
-            double swell = 0.38 + 0.62 * Math.pow((Math.sin(2*Math.PI*p*0.085)+1)/2, 3);
-            value = l.low * 2.8f + (float)Math.sin(2*Math.PI*(id.equals("sub_bass") ? 34 : 39)*p)*0.35f;
-            value *= (float)swell;
-            if (id.equals("thunder_close") && random.nextFloat() > 0.9994f) value += (n > 0 ? 1f : -1f) * 0.8f;
-        } else if (id.equals("heartbeat")) {
-            double q = p % 1.08;
-            double beat1 = Math.exp(-Math.pow((q-0.10)/0.035,2));
-            double beat2 = Math.exp(-Math.pow((q-0.28)/0.055,2));
-            value = (float)(Math.sin(2*Math.PI*48*p) * (beat1*0.8 + beat2*0.65));
-        } else if (id.equals("birdsong") || id.equals("owl") || id.equals("frog") || id.equals("cricket")
-                || id.equals("wolf_howl") || id.equals("dog_bark") || id.equals("lion") || id.equals("horse")
-                || id.equals("whale") || id.equals("cat_purr")) {
-            value = animalTone(id, p, n, l);
-        } else if (id.equals("waves") || id.equals("beach") || id.equals("ocean_underwater")) {
-            l.low += 0.004f * (n-l.low);
-            float swell = (float)(0.18 + 0.82 * (0.5 + 0.5*Math.sin(2*Math.PI*p*0.11)));
-            value = (l.low*1.9f + n*0.12f) * swell;
-        } else if (id.equals("forest_wind") || id.equals("low_wind") || id.equals("night_air") || id.equals("moon_wind")) {
-            l.low += 0.0025f * (n-l.low);
-            l.mid += 0.018f * (n-l.mid);
-            value = l.low*1.9f + l.mid*0.25f;
-        } else if (id.equals("stream") || id.equals("waterfall")) {
-            l.mid += 0.09f * (n-l.mid);
-            value = l.mid*0.78f + n*0.12f;
-        } else if (id.equals("fire") || id.equals("campfire") || id.equals("embers")) {
-            l.low += 0.015f * (n-l.low);
-            float crackle = random.nextFloat() > 0.997f ? n*1.5f : 0f;
-            value = l.low*0.7f + n*0.13f + crackle;
-        } else if (id.equals("pink_noise") || id.equals("brown_noise")) {
-            l.low += (id.equals("brown_noise") ? 0.0012f : 0.018f) * (n-l.low);
-            value = id.equals("brown_noise") ? l.low*3.4f : l.low*1.15f + n*0.12f;
-        } else if (id.equals("white_noise")) {
-            value = n*0.42f;
-        } else if (id.equals("breathing")) {
-            l.low += 0.02f*(n-l.low);
-            float envelope = (float)(0.15 + 0.75*(0.5+0.5*Math.sin(2*Math.PI*p*0.18)));
-            value = l.low*envelope;
-        } else if (id.equals("singing_bowl") || id.equals("space_drone") || id.equals("cosmic_noise")) {
-            value = (float)(Math.sin(2*Math.PI*(id.equals("singing_bowl") ? 220 : 83)*p)*0.30
-                    + Math.sin(2*Math.PI*(id.equals("singing_bowl") ? 331 : 127)*p)*0.12);
-            value += n*0.04f;
-        } else if (id.equals("cafe") || id.equals("crowd") || id.equals("city") || id.equals("train") || id.equals("footsteps")) {
-            l.low += 0.006f*(n-l.low);
-            value = l.low*1.2f + (float)Math.sin(2*Math.PI*(id.equals("footsteps")?1.8:2.7)*p)*0.08f + n*0.07f;
-        } else {
-            l.low += 0.01f*(n-l.low);
-            value = l.low*0.8f + n*0.12f;
+                    ? (random.nextFloat() * 2f - 1f) * 0.7f : 0f;
+            float value = layer.low * 0.72f + (layer.mid - layer.low) * 0.5f + noise * 0.08f + drops;
+            if (id.equals("bass_rain")) {
+                value = layer.low * 0.18f
+                        + (float) Math.sin(2 * Math.PI * 47 * time) * 0.40f
+                        + (float) Math.sin(2 * Math.PI * 71 * time) * 0.14f
+                        + drops * 0.20f;
+            }
+            return value * layer.gain;
         }
-        return value * l.gain;
-    }
 
-    private float animalTone(String id, double p, float noise, Layer l) {
-        double cycle;
-        double freq;
+        if (id.contains("thunder") || id.equals("sub_bass")) {
+            layer.low += 0.0018f * (noise - layer.low);
+            double swell = 0.38 + 0.62 * Math.pow((Math.sin(2 * Math.PI * time * 0.085) + 1) / 2, 3);
+            double frequency = id.equals("sub_bass") ? 34 : 39;
+            float value = layer.low * 2.2f + (float) Math.sin(2 * Math.PI * frequency * time) * 0.25f;
+            return (float) (value * swell) * layer.gain;
+        }
+
+        if (id.equals("heartbeat")) {
+            double cycle = time % 1.08;
+            double beat1 = Math.exp(-Math.pow((cycle - 0.10) / 0.035, 2));
+            double beat2 = Math.exp(-Math.pow((cycle - 0.28) / 0.055, 2));
+            return (float) (Math.sin(2 * Math.PI * 48 * time) * (beat1 * 0.65 + beat2 * 0.5)) * layer.gain;
+        }
+
         if (id.equals("cat_purr")) {
-            return (float)(Math.sin(2*Math.PI*27*p)*0.18 + Math.sin(2*Math.PI*54*p)*0.08) + noise*0.035f;
+            return ((float) Math.sin(2 * Math.PI * 27 * time) * 0.16f
+                    + (float) Math.sin(2 * Math.PI * 54 * time) * 0.07f + noise * 0.02f) * layer.gain;
         }
+
         if (id.equals("wolf_howl") || id.equals("whale")) {
-            cycle = p % (id.equals("wolf_howl") ? 5.5 : 7.0);
-            double env = Math.max(0, Math.sin(Math.PI*cycle/(id.equals("wolf_howl") ? 4.2 : 5.5)));
-            freq = id.equals("wolf_howl") ? 340 + 150*Math.sin(cycle*0.65) : 420 + 95*Math.sin(cycle*0.3);
-            return (float)(Math.sin(2*Math.PI*freq*p)*env*0.42 + Math.sin(2*Math.PI*freq*1.48*p)*env*0.08);
+            double duration = id.equals("wolf_howl") ? 5.5 : 7.0;
+            double cycle = time % duration;
+            double envelope = Math.max(0, Math.sin(Math.PI * cycle / (duration * 0.78)));
+            double frequency = id.equals("wolf_howl")
+                    ? 340 + 120 * Math.sin(cycle * 0.65)
+                    : 420 + 70 * Math.sin(cycle * 0.3);
+            return (float) (Math.sin(2 * Math.PI * frequency * time) * envelope * 0.32
+                    + Math.sin(2 * Math.PI * frequency * 1.48 * time) * envelope * 0.06) * layer.gain;
         }
+
         if (id.equals("dog_bark") || id.equals("lion") || id.equals("horse")) {
-            cycle = p % 2.6;
-            double pulse = Math.max(0, 1 - Math.abs(cycle-(id.equals("lion")?0.45:0.28))*8);
-            freq = id.equals("lion") ? 105 : (id.equals("horse") ? 210 : 165);
-            return (float)(Math.sin(2*Math.PI*freq*p)*pulse*0.55 + noise*pulse*0.08);
+            double cycle = time % 2.6;
+            double pulse = Math.max(0, 1 - Math.abs(cycle - 0.28) * 8);
+            double frequency = id.equals("lion") ? 105 : (id.equals("horse") ? 210 : 165);
+            return (float) (Math.sin(2 * Math.PI * frequency * time) * pulse * 0.40
+                    + noise * pulse * 0.05) * layer.gain;
         }
-        if (id.equals("owl")) {
-            cycle = p % 3.5;
-            double pulse = Math.exp(-Math.pow((cycle-0.3)/0.18,2)) + 0.8*Math.exp(-Math.pow((cycle-1.0)/0.18,2));
-            return (float)(Math.sin(2*Math.PI*430*p)*pulse*0.34);
+
+        if (id.equals("owl") || id.equals("frog") || id.equals("cricket") || id.equals("birdsong")) {
+            double frequency = id.equals("owl") ? 430 : (id.equals("frog") ? 620 : (id.equals("cricket") ? 3800 : 1850));
+            double cycle = time % (id.equals("cricket") ? 0.22 : 2.8);
+            double pulse = id.equals("cricket")
+                    ? (Math.sin(2 * Math.PI * 4.5 * time) > 0.72 ? 1 : 0.12)
+                    : Math.exp(-Math.pow((cycle - 0.3) / 0.22, 2));
+            return (float) (Math.sin(2 * Math.PI * frequency * time) * pulse * 0.18) * layer.gain;
         }
-        if (id.equals("frog")) {
-            cycle = p % 1.9;
-            double pulse = Math.exp(-Math.pow((cycle-0.25)/0.16,2));
-            return (float)(Math.sin(2*Math.PI*620*p)*pulse*0.25);
+
+        if (id.equals("waves") || id.equals("beach") || id.equals("ocean_underwater")) {
+            layer.low += 0.004f * (noise - layer.low);
+            float swell = (float) (0.18 + 0.82 * (0.5 + 0.5 * Math.sin(2 * Math.PI * time * 0.11)));
+            return (layer.low * 1.7f + noise * 0.10f) * swell * layer.gain;
         }
-        if (id.equals("cricket")) {
-            double pulse = (Math.sin(2*Math.PI*4.5*p)>0.72)?1:0.12;
-            return (float)(Math.sin(2*Math.PI*3800*p)*pulse*0.12);
+
+        if (id.equals("forest_wind") || id.equals("low_wind") || id.equals("night_air") || id.equals("moon_wind")) {
+            layer.low += 0.0025f * (noise - layer.low);
+            layer.mid += 0.018f * (noise - layer.mid);
+            return (layer.low * 1.6f + layer.mid * 0.22f) * layer.gain;
         }
-        cycle = p % 2.8;
-        double local = cycle < 0.42 ? cycle : -1;
-        if (local >= 0) {
-            double env = Math.sin(Math.PI*local/0.42);
-            freq = 1450 + 1300*(local/0.42);
-            return (float)(Math.sin(2*Math.PI*freq*local)*env*0.28);
+
+        if (id.equals("stream") || id.equals("waterfall") || id.equals("rain_drips") || id.equals("rain_window")
+                || id.equals("rain_roof") || id.equals("rain_car") || id.equals("rain_tent") || id.equals("rain_puddle")
+                || id.equals("bass_drips")) {
+            layer.mid += 0.09f * (noise - layer.mid);
+            float drops = random.nextFloat() > 0.992f ? noise * 0.6f : 0f;
+            return (layer.mid * 0.68f + noise * 0.08f + drops) * layer.gain;
         }
-        return noise*0.015f;
+
+        if (id.equals("fire") || id.equals("campfire") || id.equals("embers")) {
+            layer.low += 0.015f * (noise - layer.low);
+            float crackle = random.nextFloat() > 0.997f ? noise * 0.8f : 0f;
+            return (layer.low * 0.65f + noise * 0.10f + crackle) * layer.gain;
+        }
+
+        if (id.equals("pink_noise") || id.equals("brown_noise")) {
+            layer.low += (id.equals("brown_noise") ? 0.0012f : 0.018f) * (noise - layer.low);
+            return (id.equals("brown_noise") ? layer.low * 2.5f : layer.low * 1.05f + noise * 0.10f) * layer.gain;
+        }
+
+        if (id.equals("white_noise")) return noise * 0.35f * layer.gain;
+
+        if (id.equals("breathing")) {
+            layer.low += 0.02f * (noise - layer.low);
+            float envelope = (float) (0.15 + 0.75 * (0.5 + 0.5 * Math.sin(2 * Math.PI * time * 0.18)));
+            return layer.low * envelope * layer.gain;
+        }
+
+        if (id.equals("singing_bowl") || id.equals("space_drone") || id.equals("cosmic_noise")) {
+            double base = id.equals("singing_bowl") ? 220 : 83;
+            return ((float) Math.sin(2 * Math.PI * base * time) * 0.25f
+                    + (float) Math.sin(2 * Math.PI * base * 1.5 * time) * 0.09f
+                    + noise * 0.025f) * layer.gain;
+        }
+
+        if (id.equals("cafe") || id.equals("crowd") || id.equals("city") || id.equals("train") || id.equals("footsteps")
+                || id.equals("leaves") || id.equals("hail")) {
+            layer.low += 0.006f * (noise - layer.low);
+            return (layer.low * 0.9f + noise * 0.06f) * layer.gain;
+        }
+
+        layer.low += 0.01f * (noise - layer.low);
+        return (layer.low * 0.8f + noise * 0.08f) * layer.gain;
     }
 
     synchronized void close() {
         running = false;
-        if (worker != null) {
-            worker.interrupt();
-            try { worker.join(300); } catch (InterruptedException ignored) { }
-            worker = null;
+        Thread oldWorker = worker;
+        if (oldWorker != null) {
+            oldWorker.interrupt();
+            try { oldWorker.join(250); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
         }
-        if (track != null) {
-            try { track.pause(); track.flush(); track.release(); } catch (Exception ignored) { }
-            track = null;
+        worker = null;
+        AudioTrack current = track;
+        track = null;
+        if (current != null) {
+            try { current.pause(); } catch (RuntimeException ignored) { }
+            try { current.flush(); } catch (RuntimeException ignored) { }
+            try { current.release(); } catch (RuntimeException ignored) { }
         }
         layers.clear();
     }
 
     private static final class Layer {
         final float gain;
-        long sample = 0;
-        double phase = 0;
-        float low = 0, mid = 0;
+        double phase;
+        float low;
+        float mid;
         Layer(float gain) { this.gain = gain; }
     }
 }
