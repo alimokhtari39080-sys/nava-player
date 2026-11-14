@@ -45,17 +45,40 @@ public class MainActivity extends Activity {
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
-        getWindow().setStatusBarColor(Color.rgb(5, 19, 26));
-        getWindow().setNavigationBarColor(Color.rgb(5, 19, 26));
-        prefs = getSharedPreferences("ava_nature_plus", MODE_PRIVATE);
-        favoriteIds.addAll(prefs.getStringSet("favorites", new LinkedHashSet<>()));
-        buildCatalog();
-        selectedTheme = themes.get(0);
-        createScreen();
-        renderTheme();
-        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != 0) {
-            requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 41);
+        try {
+            getWindow().setStatusBarColor(Color.rgb(5, 19, 26));
+            getWindow().setNavigationBarColor(Color.rgb(5, 19, 26));
+            prefs = getSharedPreferences("ava_nature_plus", MODE_PRIVATE);
+            Set<String> saved = prefs.getStringSet("favorites", new LinkedHashSet<>());
+            if (saved != null) favoriteIds.addAll(saved);
+            buildCatalog();
+            if (themes.isEmpty()) throw new IllegalStateException("Sound theme catalog is empty");
+            selectedTheme = themes.get(0);
+            createScreen();
+            renderTheme();
+            if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != 0) {
+                requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 41);
+            }
+        } catch (Throwable error) {
+            android.util.Log.e("AvaNatureStartup", "Startup failed; showing recovery screen.", error);
+            showRecoveryScreen(error);
         }
+    }
+
+    private void showRecoveryScreen(Throwable error) {
+        LinearLayout recovery = new LinearLayout(this);
+        recovery.setOrientation(LinearLayout.VERTICAL);
+        recovery.setPadding(dp(24), dp(24), dp(24), dp(24));
+        recovery.setBackgroundColor(Color.rgb(7, 25, 35));
+        TextView heading = text("آواطبیعت پلاس", 22, Color.WHITE, true);
+        recovery.addView(heading);
+        TextView detail = text("برنامه با یک خطای داخلی روبه‌رو شد؛ اما برای جلوگیری از بسته‌شدن کامل، صفحه بازیابی نمایش داده شده است.", 14, 0xffd3e4df, false);
+        detail.setPadding(0, dp(16), 0, dp(16));
+        recovery.addView(detail);
+        TextView retry = pill("تلاش دوباره", 14, Color.WHITE);
+        retry.setOnClickListener(v -> recreate());
+        recovery.addView(retry, new LinearLayout.LayoutParams(-1, dp(48)));
+        setContentView(recovery);
     }
 
     private void createScreen() {
@@ -381,13 +404,22 @@ public class MainActivity extends Activity {
         startPlaybackService(i);
     }
     private void startPlaybackService(Intent i) {
-        if (Build.VERSION.SDK_INT >= 26) startForegroundService(i);
-        else startService(i);
+        try {
+            if (Build.VERSION.SDK_INT >= 26) startForegroundService(i);
+            else startService(i);
+        } catch (RuntimeException error) {
+            android.util.Log.e("AvaNaturePlayback", "Playback service unavailable; main screen will stay open.", error);
+            android.widget.Toast.makeText(this, "پخش صدا در این لحظه در دسترس نیست؛ خود برنامه باز می‌ماند.", android.widget.Toast.LENGTH_LONG).show();
+        }
     }
     private void clearSounds() {
         activeIds.clear();
         Intent i = new Intent(this, SoundscapeService.class).setAction(SoundscapeService.ACTION_CLEAR);
-        startService(i);
+        try {
+            startService(i);
+        } catch (RuntimeException error) {
+            android.util.Log.w("AvaNaturePlayback", "Could not send stop command.", error);
+        }
         renderCards();
         updatePlayerStatus();
     }
