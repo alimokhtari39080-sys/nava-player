@@ -1,8 +1,7 @@
 package com.avanature.soundscape.v2;
 
-import android.media.AudioAttributes;
-import android.media.AudioFormat;
 import android.media.AudioTrack;
+import android.media.AudioManager;
 import android.os.Process;
 import android.util.Log;
 
@@ -59,19 +58,15 @@ final class SoundscapeEngine {
             if (minimum <= 0) minimum = BLOCK * 4;
             int bufferBytes = Math.max(minimum, BLOCK * 8);
 
-            localTrack = new AudioTrack.Builder()
-                    .setAudioAttributes(new AudioAttributes.Builder()
-                            .setUsage(AudioAttributes.USAGE_MEDIA)
-                            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                            .build())
-                    .setAudioFormat(new AudioFormat.Builder()
-                            .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                            .setSampleRate(RATE)
-                            .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
-                            .build())
-                    .setBufferSizeInBytes(bufferBytes)
-                    .setTransferMode(AudioTrack.MODE_STREAM)
-                    .build();
+            // Use the long-supported STREAM_MUSIC constructor and mono PCM.
+            // This avoids device-specific Builder/stereo initialization failures.
+            localTrack = new AudioTrack(
+                    AudioManager.STREAM_MUSIC,
+                    RATE,
+                    android.media.AudioFormat.CHANNEL_OUT_MONO,
+                    android.media.AudioFormat.ENCODING_PCM_16BIT,
+                    Math.max(bufferBytes, minimum),
+                    AudioTrack.MODE_STREAM);
 
             if (localTrack.getState() != AudioTrack.STATE_INITIALIZED) {
                 Log.e(TAG, "AudioTrack could not initialize; audio disabled for this session.");
@@ -81,9 +76,9 @@ final class SoundscapeEngine {
             track = localTrack;
             localTrack.setVolume(1.0f);
             localTrack.play();
-            Log.i(TAG, "AudioTrack playing with matching 44.1 kHz stereo format; state=" + localTrack.getPlayState() + ", session=" + localTrack.getAudioSessionId());
+            Log.i(TAG, "AudioTrack playing as mono PCM on STREAM_MUSIC; state=" + localTrack.getPlayState() + ", session=" + localTrack.getAudioSessionId());
 
-            short[] output = new short[BLOCK * 2];
+            short[] output = new short[BLOCK];
             while (running) {
                 if (layers.isEmpty()) {
                     Arrays.fill(output, (short) 0);
@@ -94,14 +89,13 @@ final class SoundscapeEngine {
                             mixed += render(entry.getKey(), entry.getValue());
                         }
                         // Apply substantial make-up gain and a soft-knee limiter so quiet synthesized layers are audible.
-                        mixed *= master * 9.0f;
+                        mixed *= master * 12.0f;
                         mixed = (float) Math.tanh(mixed) * 0.82f;
                         short sample = (short) (mixed * 32767f);
-                        output[i * 2] = sample;
-                        output[i * 2 + 1] = sample;
+                        output[i] = sample;
                     }
                 }
-                int written = localTrack.write(output, 0, output.length, AudioTrack.WRITE_BLOCKING);
+                int written = localTrack.write(output, 0, output.length);
                 if (written < 0) {
                     Log.e(TAG, "AudioTrack write failed: " + written);
                     break;
