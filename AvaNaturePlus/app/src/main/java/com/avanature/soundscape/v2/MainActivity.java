@@ -2,6 +2,8 @@ package com.avanature.soundscape.v2;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.media.AudioManager;
+import android.media.ToneGenerator;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
@@ -48,6 +50,7 @@ public class MainActivity extends Activity {
     private SharedPreferences prefs;
     private ThemeData selectedTheme;
     private CountDownTimer sleepTimer, testSoundTimer;
+    private ToneGenerator testToneGenerator;
     private boolean showFavorites = false;
     private float masterVolume = 0.90f;
 
@@ -402,11 +405,37 @@ public class MainActivity extends Activity {
     }
 
     private void playTestSound() {
+        AudioManager audio = (AudioManager) getSystemService(AUDIO_SERVICE);
+        if (audio == null) {
+            android.widget.Toast.makeText(this, "مدیریت صدای گوشی در دسترس نیست.", android.widget.Toast.LENGTH_LONG).show();
+            return;
+        }
+        int current = audio.getStreamVolume(AudioManager.STREAM_MUSIC);
+        int max = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+        if (current == 0) {
+            android.widget.Toast.makeText(this, "صدای رسانه گوشی روی صفر است؛ با دکمه صدا آن را زیاد کن.", android.widget.Toast.LENGTH_LONG).show();
+            return;
+        }
+        try {
+            if (testToneGenerator != null) testToneGenerator.release();
+            testToneGenerator = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
+            testToneGenerator.startTone(ToneGenerator.TONE_PROP_BEEP, 850);
+            sendReplace("test_tone");
+            android.widget.Toast.makeText(this, "تست خروجی: صدای رسانه " + current + " از " + max, android.widget.Toast.LENGTH_LONG).show();
+        } catch (RuntimeException error) {
+            android.util.Log.e("AvaNatureTest", "ToneGenerator test failed", error);
+            android.widget.Toast.makeText(this, "تست صدای گوشی ناموفق بود؛ بلوتوث و خروجی رسانه را بررسی کن.", android.widget.Toast.LENGTH_LONG).show();
+        }
         if (testSoundTimer != null) testSoundTimer.cancel();
-        sendAdd("test_tone");
-        testSoundTimer = new CountDownTimer(2200, 2200) {
+        testSoundTimer = new CountDownTimer(1200, 1200) {
             @Override public void onTick(long millisUntilFinished) { }
-            @Override public void onFinish() { sendRemove("test_tone"); }
+            @Override public void onFinish() {
+                sendRemove("test_tone");
+                if (testToneGenerator != null) {
+                    testToneGenerator.release();
+                    testToneGenerator = null;
+                }
+            }
         }.start();
     }
 
@@ -672,6 +701,7 @@ public class MainActivity extends Activity {
     @Override protected void onDestroy() {
         if (sleepTimer != null) sleepTimer.cancel();
         if (testSoundTimer != null) testSoundTimer.cancel();
+        if (testToneGenerator != null) { testToneGenerator.release(); testToneGenerator = null; }
         super.onDestroy();
     }
 }
