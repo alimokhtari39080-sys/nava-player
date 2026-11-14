@@ -381,10 +381,11 @@ public class MainActivity extends Activity {
     }
 
     private void playPreset(String... ids) {
+        // A preset starts with one clear lead sound; extra layers are always user-added.
         clearSounds();
-        for (String id : ids) {
-            activeIds.add(id);
-            sendAdd(id);
+        if (ids != null && ids.length > 0 && ids[0] != null) {
+            activeIds.add(ids[0]);
+            sendAdd(ids[0]);
         }
         renderCards();
         updatePlayerStatus();
