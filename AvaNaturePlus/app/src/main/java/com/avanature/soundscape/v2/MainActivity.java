@@ -56,7 +56,7 @@ public class MainActivity extends Activity {
             selectedTheme = themes.get(0);
             createScreen();
             renderTheme();
-            if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != 0) {
+            if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != android.content.pm.PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 41);
             }
         } catch (Throwable error) {
