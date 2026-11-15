@@ -3,7 +3,7 @@ name: Android builds
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, studio-edition ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
@@ -42,7 +42,7 @@ jobs:
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: NAVA-Player-debug
+          name: NAVA-Player-Studio-debug
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
@@ -89,7 +89,7 @@ jobs:
         if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' && env.ANDROID_KEYSTORE_PASSWORD != '' && env.ANDROID_KEY_ALIAS != '' && env.ANDROID_KEY_PASSWORD != '' }}
         uses: actions/upload-artifact@v4
         with:
-          name: NAVA-Player-Google-Play-AAB
+          name: NAVA-Player-Studio-Google-Play-AAB
           path: app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 30
@@ -98,7 +98,7 @@ jobs:
         if: ${{ env.ANDROID_KEYSTORE_BASE64 == '' || env.ANDROID_KEYSTORE_PASSWORD == '' || env.ANDROID_KEY_ALIAS == '' || env.ANDROID_KEY_PASSWORD == '' }}
         uses: actions/upload-artifact@v4
         with:
-          name: NAVA-Player-release-unsigned
+          name: NAVA-Player-Studio-release-unsigned
           path: app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 14
