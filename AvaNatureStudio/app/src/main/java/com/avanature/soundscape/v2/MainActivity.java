@@ -387,19 +387,22 @@ public class MainActivity extends Activity {
     }
 
     private void playPreset(String... ids) {
-        // Replace the current mix in one service command; do not race CLEAR against ADD.
-        if (ids != null && ids.length > 0 && ids[0] != null) {
-            activeIds.clear();
-            activeIds.add(ids[0]);
-            sendReplace(ids[0]);
+        // Replace the mix once, then start every requested layer together.
+        activeIds.clear();
+        if (ids != null) {
+            for (String id : ids) {
+                if (id != null && !id.trim().isEmpty()) activeIds.add(id);
+            }
         }
+        if (!activeIds.isEmpty()) sendReplace(new ArrayList<>(activeIds));
         renderCards();
         updatePlayerStatus();
     }
 
-    private void sendReplace(String id) {
+    private void sendReplace(List<String> ids) {
         Intent i = new Intent(this, SoundscapeService.class).setAction(SoundscapeService.ACTION_REPLACE);
-        i.putExtra(SoundscapeService.EXTRA_ID, id);
+        i.putExtra(SoundscapeService.EXTRA_IDS, new ArrayList<>(ids));
+        if (!ids.isEmpty()) i.putExtra(SoundscapeService.EXTRA_ID, ids.get(0));
         i.putExtra(SoundscapeService.EXTRA_GAIN, 0.90f);
         startPlaybackService(i);
     }
@@ -527,7 +530,7 @@ public class MainActivity extends Activity {
     private void showAbout() {
         new AlertDialog.Builder(this)
                 .setTitle("AvaNature Studio  |  آواطبیعت استودیو")
-                .setMessage("نسخه دوم مستقل با تم‌های پویا، میکس چندلایه، علاقه‌مندی‌ها، کنترل شدت صدا و تایمر خواب.\n\nنمونه‌های باران از فایل‌های صوتی CC0 اینترنتی پخش می‌شوند و برای دریافت آن‌ها اتصال اینترنت لازم است. در صورت قطع اینترنت، موتور صوتی داخلی به‌عنوان جایگزین فعال می‌شود.")
+                .setMessage("نسخه دوم مستقل با تم‌های پویا، میکس چندلایه، علاقه‌مندی‌ها، کنترل شدت صدا و تایمر خواب.\n\nتمام صداهای کتابخانه از فایل‌های MP3 مجاز CC0 پخش می‌شوند و برای پخش به اینترنت نیاز دارند. صداهای محیطی پیوسته تکرار می‌شوند و آواهای کوتاه حیوانات با مکث طبیعی تکرار خواهند شد.")
                 .setPositiveButton("متوجه شدم", null).show();
     }
 
