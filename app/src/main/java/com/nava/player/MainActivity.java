@@ -821,6 +821,107 @@ public final class MainActivity extends Activity {
                 Toast.LENGTH_SHORT).show();
     }
 
+    private void openEqualizer() {
+        final Equalizer equalizer = NavaPlaybackService.getEqualizer();
+        if (equalizer == null) {
+            Toast.makeText(this, "اکولایزر این دستگاه در دسترس نیست؛ ابتدا یک آهنگ پخش کن.", Toast.LENGTH_LONG).show();
+            return;
+        }
+        try {
+            short[] range = equalizer.getBandLevelRange();
+            final int min = range[0];
+            int max = range[1];
+            short count = equalizer.getNumberOfBands();
+            LinearLayout content = new LinearLayout(this);
+            content.setOrientation(LinearLayout.VERTICAL);
+            content.setPadding(dp(18), dp(10), dp(18), dp(10));
+            for (short i = 0; i < count; i++) {
+                final short band = i;
+                int hz = equalizer.getCenterFreq(i) / 1000;
+                String label = hz >= 1000 ? String.format(Locale.US, "%.1f kHz", hz / 1000f) : hz + " Hz";
+                TextView name = text(label, 12, activeSecondaryAccent, true);
+                content.addView(name, new LinearLayout.LayoutParams(-1, dp(22)));
+                SeekBar slider = new SeekBar(this);
+                slider.setMax(Math.max(1, max - min));
+                slider.setProgress(equalizer.getBandLevel(i) - min);
+                slider.setProgressTintList(android.content.res.ColorStateList.valueOf(activeAccent));
+                slider.setThumbTintList(android.content.res.ColorStateList.valueOf(activeSecondaryAccent));
+                content.addView(slider, new LinearLayout.LayoutParams(-1, dp(34)));
+                slider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                    @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+                        if (fromUser) {
+                            try { equalizer.setBandLevel(band, (short) (progress + min)); }
+                            catch (RuntimeException ignored) { }
+                        }
+                    }
+                    @Override public void onStartTrackingTouch(SeekBar bar) { }
+                    @Override public void onStopTrackingTouch(SeekBar bar) { }
+                });
+            }
+            ScrollView scroll = new ScrollView(this);
+            scroll.addView(content);
+            new AlertDialog.Builder(this).setTitle("NAVA · اکولایزر صوتی")
+                    .setMessage("تنظیم واقعی فرکانس‌های صدای خروجی دستگاه")
+                    .setView(scroll).setPositiveButton("انجام شد", null)
+                    .setNeutralButton("خاموش / روشن", (dialog, which) -> {
+                        try { equalizer.setEnabled(!equalizer.getEnabled()); }
+                        catch (RuntimeException ignored) { }
+                    }).show();
+        } catch (RuntimeException ex) {
+            Toast.makeText(this, "درایور صوتی گوشی اجازه استفاده از اکولایزر را نداد.", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void showQueueDialog() {
+        if (controller == null || controller.getMediaItemCount() == 0) {
+            Toast.makeText(this, "صف پخش خالی است.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        ScrollView scroll = new ScrollView(this);
+        LinearLayout rows = new LinearLayout(this);
+        rows.setOrientation(LinearLayout.VERTICAL);
+        rows.setPadding(dp(12), dp(8), dp(12), dp(8));
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("صف پخش · " + controller.getMediaItemCount() + " آهنگ")
+                .setView(scroll).setNegativeButton("بستن", null).create();
+        int current = controller.getCurrentMediaItemIndex();
+        for (int i = 0; i < controller.getMediaItemCount(); i++) {
+            final int index = i;
+            MediaItem item = controller.getMediaItemAt(i);
+            CharSequence title = item.mediaMetadata.title;
+            CharSequence artist = item.mediaMetadata.artist;
+            String label = (i == current ? "▶  " : (i + 1) + "  ")
+                    + (title == null ? "آهنگ بدون نام" : title)
+                    + (artist == null ? "" : "  ·  " + artist);
+            TextView row = text(label, 13, Color.WHITE, i == current);
+            row.setPadding(dp(12), 0, dp(12), 0);
+            row.setBackground(round(i == current ? activePanel : Color.rgb(34, 33, 48), 12));
+            LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(-1, dp(48));
+            rowParams.bottomMargin = dp(5);
+            rows.addView(row, rowParams);
+            row.setOnClickListener(v -> {
+                if (controller != null) {
+                    controller.seekTo(index, 0);
+                    controller.play();
+                }
+                dialog.dismiss();
+            });
+            row.setOnLongClickListener(v -> {
+                String[] actions = {"انتقال به ابتدای صف", "حذف از صف"};
+                new AlertDialog.Builder(this).setTitle("مدیریت آهنگ").setItems(actions, (d, which) -> {
+                    if (controller == null) return;
+                    if (which == 0 && index < controller.getMediaItemCount()) controller.moveMediaItem(index, 0);
+                    else if (which == 1 && index < controller.getMediaItemCount()) controller.removeMediaItem(index);
+                    dialog.dismiss();
+                    showQueueDialog();
+                }).show();
+                return true;
+            });
+        }
+        scroll.addView(rows);
+        dialog.show();
+    }
+
     private void toggleShuffle() {
         if (controller == null) return;
         shuffleEnabled = !shuffleEnabled;
