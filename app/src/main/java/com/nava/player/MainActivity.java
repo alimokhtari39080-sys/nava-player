@@ -11,6 +11,7 @@ import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.media.audiofx.Equalizer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -30,6 +31,8 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.HorizontalScrollView;
+import android.widget.ImageView;
+import android.widget.ScrollView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -86,6 +89,13 @@ public final class MainActivity extends Activity {
     private SongAdapter adapter;
     private LinearLayout genreTabs;
     private LinearLayout playerCard;
+    private ImageView coverArt;
+    private LinearLayout aiStudioCard;
+    private MusicMood selectedMood = MusicMood.PERSONAL;
+    private int activeBackground = BG;
+    private int activePanel = PANEL;
+    private int activeAccent = PURPLE;
+    private int activeSecondaryAccent = MINT;
     private MusicGenre selectedGenre = MusicGenre.ALL;
     private final Map<String, MusicGenre> genreOverrides = new HashMap<>();
 
@@ -153,6 +163,7 @@ public final class MainActivity extends Activity {
         TextView subtitle = text("موسیقی، با حال‌وهوای تو", 13, MUTED, false);
         root.addView(subtitle, new LinearLayout.LayoutParams(-1, dp(28)));
 
+        buildMoodSelector();
         buildAiStudioCard();
 
         searchBox = new EditText(this);
@@ -245,6 +256,14 @@ public final class MainActivity extends Activity {
         playerCard.setPadding(dp(16), dp(14), dp(16), dp(12));
         playerCard.setBackground(round(PANEL, 22));
         root.addView(playerCard, new LinearLayout.LayoutParams(-1, -2));
+
+        coverArt = new ImageView(this);
+        coverArt.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        coverArt.setBackground(gradientRound(Color.rgb(31, 25, 55), Color.rgb(15, 35, 57), 24));
+        LinearLayout.LayoutParams coverParams = new LinearLayout.LayoutParams(dp(126), dp(126));
+        coverParams.gravity = Gravity.CENTER;
+        coverParams.bottomMargin = dp(12);
+        playerCard.addView(coverArt, coverParams);
 
         nowTitle = text("هنوز آهنگی پخش نمی‌شود", 15, Color.WHITE, true);
         nowArtist = text("یک آهنگ از فهرست انتخاب کن", 12, MUTED, false);
