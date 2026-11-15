@@ -172,7 +172,7 @@ public class SoundscapeService extends Service {
         }
     }
 
-    private void addSound(String id, float gain) {
+    private static float clamp(float value) {\n        return Math.max(0f, Math.min(1f, value));\n    }\n\n    private void addSound(String id, float gain) {
         float safeGain = clamp(gain);
         if (onlinePlayers.containsKey(id)) return;
         int resourceId = getBundledSoundResource(id);
