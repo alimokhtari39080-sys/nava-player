@@ -147,180 +147,77 @@ public class SoundscapeService extends Service {
         engine = new SoundscapeEngine();
     }
 
-    /*
-     * All catalog items use the same Android MediaPlayer output path.
-     * Rain was the only group previously routed through MediaPlayer; every
-     * other group fell back to the less reliable PCM AudioTrack synthesizer.
-     * These stable CC0 MP3 links now cover the complete visible sound catalog.
-     */
-    private String getOnlineSoundUrl(String id) {
+    // All ambience is packaged inside the APK: playback works without mobile data or Wi-Fi.
+    private int getBundledSoundResource(String id) {
         switch (id) {
-            // Rain — separate samples for each surface and intensity.
-            case "rain_soft": return "https://sfxmint.com/dl/ambience-rain-62.mp3";
-            case "rain_heavy": return "https://sfxmint.com/dl/ambience-rain-63.mp3";
-            case "rain_window": return "https://sfxmint.com/dl/ambience-rain-21.mp3";
-            case "rain_roof": return "https://sfxmint.com/dl/ambience-rain-15.mp3";
-            case "rain_car": return "https://sfxmint.com/dl/ambience-rain-17.mp3";
-            case "rain_tent": return "https://sfxmint.com/dl/ambience-rain-32.mp3";
-            case "rain_drips": return "https://sfxmint.com/dl/ambience-rain-03.mp3";
-            case "rain_puddle": return "https://sfxmint.com/dl/ambience-rain-34.mp3";
-            case "bass_rain": return "https://sfxmint.com/dl/ambience-rain-42.mp3";
-
-            // Forest, birds, insects and flowing water.
-            case "forest_wind": return "https://sfxmint.com/dl/windy-leafy-forest-ambience-01.mp3";
-            case "birdsong": return "https://sfxmint.com/dl/ambience-forest-40.mp3";
-            case "stream": return "https://sfxmint.com/dl/river-ambience-11.mp3";
-            case "waterfall": return "https://sfxmint.com/dl/water-stream-82.mp3";
-            case "leaves": return "https://sfxmint.com/dl/ambience-forest-50.mp3";
-            case "cricket": return "https://sfxmint.com/dl/ambience-forest-23.mp3";
-            case "owl": return "https://sfxmint.com/dl/animal-owl-01.mp3";
-            case "night_air": return "https://sfxmint.com/dl/ambience-forest-50.mp3";
-
-            // Thunder and weather.
-            case "thunder_far": return "https://sfxmint.com/dl/ambience-thunder-12.mp3";
-            case "thunder_close": return "https://sfxmint.com/dl/ambience-thunder-07.mp3";
-            case "storm_wind": return "https://sfxmint.com/dl/ambience-wind-55.mp3";
-            case "hail": return "https://sfxmint.com/dl/hail-04.mp3";
-            case "deep_thunder": return "https://sfxmint.com/dl/ambience-thunder-11.mp3";
-
-            // Animal sounds.
-            case "wolf_howl": return "https://sfxmint.com/dl/wolf-howl-02.mp3";
-            case "cat_purr": return "https://sfxmint.com/dl/animal-cat-meow-34.mp3";
-            case "dog_bark": return "https://sfxmint.com/dl/animal-dog-bark-25.mp3";
-            case "frog": return "https://sfxmint.com/dl/animal-frog-14.mp3";
-            case "horse": return "https://sfxmint.com/dl/horse-neigh-03.mp3";
-            case "whale": return "https://sfxmint.com/dl/whale-song-03.mp3";
-            case "lion": return "https://sfxmint.com/dl/lion-roar-02.mp3";
-
-            // Ocean and underwater ambience.
-            case "waves": return "https://sfxmint.com/dl/ambience-ocean-31.mp3";
-            case "beach": return "https://sfxmint.com/dl/ambience-ocean-11.mp3";
-            case "ocean_underwater": return "https://sfxmint.com/dl/underwater-ambience-02.mp3";
-
-            // Low-frequency, noise and rest sounds.
-            case "heartbeat": return "https://sfxmint.com/dl/tension-drone-03.mp3";
-            case "brown_noise": return "https://sfxmint.com/dl/tension-drone-08.mp3";
-            case "pink_noise": return "https://sfxmint.com/dl/white-noise-02.mp3";
-            case "white_noise": return "https://sfxmint.com/dl/white-noise-01.mp3";
-            case "low_wind": return "https://sfxmint.com/dl/ambience-wind-55.mp3";
-            case "sub_bass": return "https://sfxmint.com/dl/tension-drone-08.mp3";
-            case "bass_drips": return "https://sfxmint.com/dl/water-drip-77.mp3";
-            case "breathing": return "https://sfxmint.com/dl/breathing-02.mp3";
-            case "singing_bowl": return "https://sfxmint.com/dl/instrument-singing-bowl-53.mp3";
-
-            // City, fire and space.
-            case "cafe": return "https://sfxmint.com/dl/cafe-interior-ambience-02.mp3";
-            case "crowd": return "https://sfxmint.com/dl/crowd-murmur-81.mp3";
-            case "footsteps": return "https://sfxmint.com/dl/footsteps-wood-60.mp3";
-            case "train": return "https://sfxmint.com/dl/steam-train-motion-01.mp3";
-            case "city": return "https://sfxmint.com/dl/city-night-ambience-02.mp3";
-            case "fire": return "https://sfxmint.com/dl/ambience-fireplace-50.mp3";
-            case "campfire": return "https://sfxmint.com/dl/fire-electric-crackle-80.mp3";
-            case "embers": return "https://sfxmint.com/dl/ambience-fireplace-52.mp3";
-            case "space_drone": return "https://sfxmint.com/dl/tension-drone-01.mp3";
-            case "cosmic_noise": return "https://sfxmint.com/dl/tension-drone-07.mp3";
-            case "moon_wind": return "https://sfxmint.com/dl/ambience-wind-55.mp3";
-            default: return null;
+            case "rain_soft": case "rain_window": case "rain_tent": case "rain_puddle":
+            case "rain_drips": case "rain_roof": case "rain_car": case "rain_heavy":
+            case "bass_rain": return R.raw.rain_soft;
+            case "forest_wind": case "leaves": case "low_wind": case "storm_wind":
+            case "moon_wind": return R.raw.forest_wind;
+            case "birdsong": case "owl": case "cricket": case "night_air":
+            case "frog": case "cat_purr": case "dog_bark": case "wolf_howl":
+            case "horse": case "whale": case "lion": return R.raw.forest_birds;
+            case "stream": case "waterfall": case "waves": case "beach":
+            case "ocean_underwater": case "bass_drips": return R.raw.water_ambience;
+            case "thunder_far": case "thunder_close": case "deep_thunder":
+            case "hail": return R.raw.thunder_ambience;
+            case "fire": case "campfire": case "embers": return R.raw.fireplace;
+            case "white_noise": case "pink_noise": return R.raw.white_noise;
+            case "brown_noise": case "sub_bass": case "heartbeat": case "space_drone":
+            case "cosmic_noise": case "breathing": case "singing_bowl":
+            case "cafe": case "crowd": case "city": case "train": case "footsteps":
+                return R.raw.forest_wind;
+            default: return R.raw.rain_soft;
         }
-    }
-
-    private static float clamp(float value) {
-        return Math.max(0f, Math.min(1f, value));
-    }
-
-    // Animal calls are short effects, not long ambience beds. Leave a natural
-    // pause before repeating them instead of machine-gunning the same call.
-    private boolean isOneShotCall(String id) {
-        return "wolf_howl".equals(id) || "dog_bark".equals(id) || "cat_purr".equals(id) || "frog".equals(id)
-                || "horse".equals(id) || "whale".equals(id) || "lion".equals(id)
-                || "owl".equals(id);
-    }
-
-    private void replayOneShotAfterPause(String id, MediaPlayer player) {
-        long pauseMs = 1800L + (Math.abs(id.hashCode()) % 1800L);
-        playbackHandler.postDelayed(() -> {
-            if (onlinePlayers.get(id) != player) return;
-            try {
-                player.setOnSeekCompleteListener(seeked -> {
-                    if (onlinePlayers.get(id) != seeked) return;
-                    try {
-                        seeked.start();
-                    } catch (RuntimeException ex) {
-                        Log.e(TAG, "Could not replay animal sample: " + id, ex);
-                        Float gain = onlineGains.get(id);
-                        reportSampleFailure(id, gain == null ? 0.90f : gain, seeked);
-                    }
-                });
-                player.seekTo(0);
-            } catch (RuntimeException ex) {
-                Log.e(TAG, "Could not seek animal sample: " + id, ex);
-                Float gain = onlineGains.get(id);
-                reportSampleFailure(id, gain == null ? 0.90f : gain, player);
-            }
-        }, pauseMs);
     }
 
     private void addSound(String id, float gain) {
         float safeGain = clamp(gain);
-        String url = getOnlineSoundUrl(id);
-        if (url == null) {
-            Log.w(TAG, "No online sample mapping for catalog ID: " + id);
-            if (engine != null) engine.add(id, safeGain);
-            Toast.makeText(this, "برای این صدا نمونهٔ آنلاین ثبت نشده است.", Toast.LENGTH_SHORT).show();
-            return;
-        }
         if (onlinePlayers.containsKey(id)) return;
-
+        int resourceId = getBundledSoundResource(id);
         MediaPlayer player = new MediaPlayer();
         onlinePlayers.put(id, player);
         onlineGains.put(id, safeGain);
-        try {
-            player.setWakeMode(getApplicationContext(), android.os.PowerManager.PARTIAL_WAKE_LOCK);
+        try (android.content.res.AssetFileDescriptor afd = getResources().openRawResourceFd(resourceId)) {
+            if (afd == null) throw new IOException("Bundled sound resource is unavailable: " + id);
             player.setAudioAttributes(new AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_MEDIA)
                     .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                     .build());
-            player.setDataSource(url);
-            player.setLooping(!isOneShotCall(id));
+            player.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
+            player.setLooping(true);
             float output = clamp(masterVolume * safeGain);
             player.setVolume(output, output);
             player.setOnPreparedListener(prepared -> {
                 if (onlinePlayers.get(id) != prepared) return;
                 try {
                     prepared.start();
-                    Log.i(TAG, "CC0 sample started via MediaPlayer: " + id + " from " + url);
+                    Log.i(TAG, "Bundled offline sample started: " + id + ", resource=" + resourceId);
                 } catch (RuntimeException ex) {
-                    Log.e(TAG, "Could not start online sample: " + id, ex);
-                    reportSampleFailure(id, safeGain, prepared);
-                }
-            });
-            player.setOnCompletionListener(completed -> {
-                if (isOneShotCall(id) && onlinePlayers.get(id) == completed) {
-                    replayOneShotAfterPause(id, completed);
+                    Log.e(TAG, "Could not start bundled sample: " + id, ex);
+                    reportSampleFailure(id, prepared);
                 }
             });
             player.setOnErrorListener((failed, what, extra) -> {
-                Log.e(TAG, "Online sample failed: " + id + ", what=" + what + ", extra=" + extra + ", url=" + url);
-                reportSampleFailure(id, safeGain, failed);
-                Toast.makeText(this, "دریافت صدای «" + id + "» ناموفق بود؛ اتصال اینترنت را بررسی کن.", Toast.LENGTH_LONG).show();
+                Log.e(TAG, "Bundled sample failed: " + id + ", what=" + what + ", extra=" + extra);
+                reportSampleFailure(id, failed);
+                Toast.makeText(this, "خطا در پخش صدای داخلی برنامه: " + id, Toast.LENGTH_LONG).show();
                 return true;
             });
             player.prepareAsync();
-            Log.i(TAG, "Preparing sound sample via MediaPlayer: " + id);
         } catch (IOException | RuntimeException ex) {
-            Log.e(TAG, "Could not prepare online sample: " + id + " from " + url, ex);
-            reportSampleFailure(id, safeGain, player);
-            Toast.makeText(this, "باز کردن نمونهٔ صوتی ناموفق بود؛ اینترنت را بررسی کن.", Toast.LENGTH_LONG).show();
+            Log.e(TAG, "Could not prepare bundled offline sample: " + id, ex);
+            reportSampleFailure(id, player);
+            Toast.makeText(this, "پخش فایل داخلی ناموفق بود: " + id, Toast.LENGTH_LONG).show();
         }
     }
 
-    private void reportSampleFailure(String id, float gain, MediaPlayer player) {
+    private void reportSampleFailure(String id, MediaPlayer player) {
         if (onlinePlayers.get(id) != player) return;
         onlinePlayers.remove(id);
         onlineGains.remove(id);
         try { player.release(); } catch (RuntimeException ignored) { }
-        Log.e(TAG, "No online audio could be started for " + id + "; not switching to the old silent PCM path.");
-        Toast.makeText(this, "صدای «" + id + "» دریافت نشد. اینترنت را بررسی کن و دوباره بزن.", Toast.LENGTH_LONG).show();
     }
 
     private void removeSound(String id) {
