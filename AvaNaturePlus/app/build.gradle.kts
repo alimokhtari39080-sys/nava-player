@@ -8,8 +8,8 @@ android {
         applicationId = "com.avanature.soundscape.v2"
         minSdk = 23
         targetSdk = 35
-        versionCode = 7
-        versionName = "2.0.5"
+        versionCode = 8
+        versionName = "2.0.6"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
