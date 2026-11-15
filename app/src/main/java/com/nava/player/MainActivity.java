@@ -324,6 +324,19 @@ public final class MainActivity extends Activity {
         secondary.addView(sleep, new LinearLayout.LayoutParams(0, dp(38), 1));
         playerCard.addView(secondary, new LinearLayout.LayoutParams(-1, dp(40)));
 
+        LinearLayout proTools = new LinearLayout(this);
+        proTools.setOrientation(LinearLayout.HORIZONTAL);
+        proTools.setGravity(Gravity.CENTER);
+        TextView queueAction = smallAction("صف پخش  ↕");
+        TextView equalizerAction = smallAction("اکولایزر  ♪");
+        proTools.addView(queueAction, new LinearLayout.LayoutParams(0, dp(38), 1));
+        proTools.addView(equalizerAction, new LinearLayout.LayoutParams(0, dp(38), 1));
+        LinearLayout.LayoutParams proParams = new LinearLayout.LayoutParams(-1, dp(40));
+        proParams.topMargin = dp(4);
+        playerCard.addView(proTools, proParams);
+        queueAction.setOnClickListener(v -> showQueueDialog());
+        equalizerAction.setOnClickListener(v -> openEqualizer());
+
         shuffleButton.setOnClickListener(v -> toggleShuffle());
         repeatButton.setOnClickListener(v -> cycleRepeat());
         speedButton.setOnClickListener(v -> chooseSpeed());
@@ -334,6 +347,7 @@ public final class MainActivity extends Activity {
 
     private void buildAiStudioCard() {
         LinearLayout card = new LinearLayout(this);
+        aiStudioCard = card;
         card.setOrientation(LinearLayout.VERTICAL);
         card.setPadding(dp(16), dp(12), dp(16), dp(12));
         GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
