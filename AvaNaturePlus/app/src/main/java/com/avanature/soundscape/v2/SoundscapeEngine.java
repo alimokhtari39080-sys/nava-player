@@ -53,30 +53,18 @@ final class SoundscapeEngine {
     private void renderLoop() {
         AudioTrack localTrack = null;
         try {
-            int minimum = AudioTrack.getMinBufferSize(
-                    RATE, android.media.AudioFormat.CHANNEL_OUT_MONO, android.media.AudioFormat.ENCODING_PCM_16BIT);
-            if (minimum <= 0) minimum = BLOCK * 4;
-            int bufferBytes = Math.max(minimum, BLOCK * 8);
-
-            // Use the long-supported STREAM_MUSIC constructor and mono PCM.
-            // This avoids device-specific Builder/stereo initialization failures.
-            localTrack = new AudioTrack(
-                    AudioManager.STREAM_MUSIC,
-                    RATE,
-                    android.media.AudioFormat.CHANNEL_OUT_MONO,
-                    android.media.AudioFormat.ENCODING_PCM_16BIT,
-                    Math.max(bufferBytes, minimum),
-                    AudioTrack.MODE_STREAM);
-
-            if (localTrack.getState() != AudioTrack.STATE_INITIALIZED) {
-                Log.e(TAG, "AudioTrack could not initialize; audio disabled for this session.");
+            localTrack = createAudioTrack();
+            if (localTrack == null) {
+                Log.e(TAG, "No compatible mono PCM AudioTrack could be initialized.");
                 return;
             }
 
             track = localTrack;
+            int outputRate = localTrack.getSampleRate();
             localTrack.setVolume(1.0f);
             localTrack.play();
-            Log.i(TAG, "AudioTrack playing as mono PCM on STREAM_MUSIC; state=" + localTrack.getPlayState() + ", session=" + localTrack.getAudioSessionId());
+            Log.i(TAG, "AudioTrack playing on STREAM_MUSIC; state=" + localTrack.getPlayState()
+                    + ", rate=" + outputRate + ", session=" + localTrack.getAudioSessionId());
 
             short[] output = new short[BLOCK];
             while (running) {
@@ -86,19 +74,28 @@ final class SoundscapeEngine {
                     for (int i = 0; i < BLOCK; i++) {
                         float mixed = 0f;
                         for (Map.Entry<String, Layer> entry : layers.entrySet()) {
-                            mixed += render(entry.getKey(), entry.getValue());
+                            mixed += render(entry.getKey(), entry.getValue(), outputRate);
                         }
-                        // Apply substantial make-up gain and a soft-knee limiter so quiet synthesized layers are audible.
                         mixed *= master * 12.0f;
                         mixed = (float) Math.tanh(mixed) * 0.82f;
-                        short sample = (short) (mixed * 32767f);
-                        output[i] = sample;
+                        output[i] = (short) (mixed * 32767f);
                     }
                 }
-                int written = localTrack.write(output, 0, output.length);
-                if (written < 0) {
-                    Log.e(TAG, "AudioTrack write failed: " + written);
-                    break;
+
+                int offset = 0;
+                while (running && offset < output.length) {
+                    int written = localTrack.write(
+                            output, offset, output.length - offset, AudioTrack.WRITE_BLOCKING);
+                    if (written < 0) {
+                        Log.e(TAG, "AudioTrack write failed: " + written + ", offset=" + offset);
+                        running = false;
+                        break;
+                    }
+                    if (written == 0) {
+                        Thread.yield();
+                    } else {
+                        offset += written;
+                    }
                 }
             }
         } catch (IllegalArgumentException | IllegalStateException | SecurityException ex) {
@@ -122,10 +119,48 @@ final class SoundscapeEngine {
         }
     }
 
-    private float render(String id, Layer layer) {
+    private AudioTrack createAudioTrack() {
+        int nativeRate = AudioTrack.getNativeOutputSampleRate(AudioManager.STREAM_MUSIC);
+        int[] candidates = {nativeRate, 48000, RATE, 32000};
+        for (int sampleRate : candidates) {
+            if (sampleRate < 8000 || sampleRate > 96000) continue;
+            int minimum = AudioTrack.getMinBufferSize(
+                    sampleRate,
+                    android.media.AudioFormat.CHANNEL_OUT_MONO,
+                    android.media.AudioFormat.ENCODING_PCM_16BIT);
+            if (minimum <= 0) {
+                Log.w(TAG, "Unsupported AudioTrack format at " + sampleRate + " Hz; trying next rate. code=" + minimum);
+                continue;
+            }
+            int bufferBytes = Math.max(minimum, BLOCK * 8);
+            AudioTrack candidate = null;
+            try {
+                candidate = new AudioTrack(
+                        AudioManager.STREAM_MUSIC,
+                        sampleRate,
+                        android.media.AudioFormat.CHANNEL_OUT_MONO,
+                        android.media.AudioFormat.ENCODING_PCM_16BIT,
+                        bufferBytes,
+                        AudioTrack.MODE_STREAM);
+                if (candidate.getState() == AudioTrack.STATE_INITIALIZED) {
+                    Log.i(TAG, "Initialized mono PCM AudioTrack at " + sampleRate + " Hz, buffer=" + bufferBytes);
+                    return candidate;
+                }
+                Log.w(TAG, "AudioTrack initialization failed at " + sampleRate + " Hz; state=" + candidate.getState());
+            } catch (RuntimeException ex) {
+                Log.w(TAG, "AudioTrack constructor failed at " + sampleRate + " Hz", ex);
+            }
+            if (candidate != null) {
+                try { candidate.release(); } catch (RuntimeException ignored) { }
+            }
+        }
+        return null;
+    }
+
+    private float render(String id, Layer layer, int sampleRate) {
         float noise = random.nextFloat() * 2f - 1f;
         double time = layer.phase;
-        layer.phase += 1.0 / RATE;
+        layer.phase += 1.0 / sampleRate;
 
         if (id.equals("test_tone")) {
             return (float) (Math.sin(2 * Math.PI * 523.25 * time) * 0.72
