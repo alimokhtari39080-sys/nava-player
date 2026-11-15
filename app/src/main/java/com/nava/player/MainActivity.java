@@ -833,12 +833,10 @@ public final class MainActivity extends Activity {
                 MediaStore.Audio.Media.ALBUM,
             MediaStore.Audio.Media.ALBUM_ID
         };
-        // Include audio files that Android has not tagged as "music" as well.
-        // Some downloaded tracks and locally copied songs are missing the IS_MUSIC flag.
-        String selection = MediaStore.Audio.Media.IS_MUSIC + " != 0 OR "
-                + MediaStore.Audio.Media.DURATION + " > 0";
+        // Read every item indexed in Android's audio media collection.
+        // Do not filter by IS_MUSIC or duration: some valid local tracks have neither metadata flag.
         String order = MediaStore.Audio.Media.TITLE + " COLLATE NOCASE ASC";
-        try (Cursor cursor = getContentResolver().query(collection, projection, selection, null, order)) {
+        try (Cursor cursor = getContentResolver().query(collection, projection, null, null, order)) {
             if (cursor != null) {
                 int idCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID);
                 int titleCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE);
