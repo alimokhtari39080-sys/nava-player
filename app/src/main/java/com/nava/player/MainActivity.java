@@ -802,7 +802,8 @@ public final class MainActivity extends Activity {
                 MediaStore.Audio.Media.TITLE,
                 MediaStore.Audio.Media.ARTIST,
                 MediaStore.Audio.Media.DURATION,
-                MediaStore.Audio.Media.ALBUM
+                MediaStore.Audio.Media.ALBUM,
+            MediaStore.Audio.Media.ALBUM_ID
         };
         String selection = MediaStore.Audio.Media.IS_MUSIC + " != 0";
         String order = MediaStore.Audio.Media.TITLE + " COLLATE NOCASE ASC";
@@ -813,16 +814,20 @@ public final class MainActivity extends Activity {
                 int artistCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST);
                 int durationCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION);
                 int albumCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM);
+                int albumIdCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID);
                 while (cursor.moveToNext()) {
                     long id = cursor.getLong(idCol);
                     String title = cursor.getString(titleCol);
                     String artist = cursor.getString(artistCol);
                     long duration = cursor.getLong(durationCol);
                     String album = cursor.getString(albumCol);
+                    long albumId = cursor.getLong(albumIdCol);
                     Uri contentUri = ContentUris.withAppendedId(collection, id);
+                    Uri artworkUri = albumId > 0 ? ContentUris.withAppendedId(
+                            Uri.parse("content://media/external/audio/albumart"), albumId) : null;
                     allSongs.add(new Song(String.valueOf(id), title == null ? "بدون نام" : title,
                             artist == null ? "هنرمند ناشناس" : artist,
-                            album == null ? "" : album, contentUri, duration));
+                            album == null ? "" : album, contentUri, duration, artworkUri));
                 }
             }
             refreshSongList();
@@ -1164,14 +1169,16 @@ public final class MainActivity extends Activity {
         final String album;
         final Uri uri;
         final long duration;
+        final Uri artworkUri;
 
-        Song(String id, String title, String artist, String album, Uri uri, long duration) {
+        Song(String id, String title, String artist, String album, Uri uri, long duration, Uri artworkUri) {
             this.id = id;
             this.title = title;
             this.artist = artist;
             this.album = album;
             this.uri = uri;
             this.duration = duration;
+            this.artworkUri = artworkUri;
         }
 
         MediaItem toMediaItem() {
@@ -1179,6 +1186,7 @@ public final class MainActivity extends Activity {
                     .setTitle(title)
                     .setArtist(artist)
                     .setAlbumTitle(album)
+                    .setArtworkUri(artworkUri)
                     .build();
             return new MediaItem.Builder().setMediaId(id).setUri(uri).setMediaMetadata(metadata).build();
         }
