@@ -103,7 +103,8 @@ for _ in range(260):
 save("water_ambience", water)
 
 # Distant thunder: deep filtered rumble with two broad swells.
-low_high = lowpass(high, 180)\nthunder = [0.24 * low[i] + 0.09 * low_high[i] for i in range(COUNT)]
+low_high = lowpass(high, 180)
+thunder = [0.24 * low[i] + 0.09 * low_high[i] for i in range(COUNT)]
 for center, width, amp in ((2.8, 1.5, 0.55), (8.3, 1.9, 0.42)):
     for i in range(COUNT):
         t = i / RATE
