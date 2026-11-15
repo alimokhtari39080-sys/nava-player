@@ -54,7 +54,7 @@ final class SoundscapeEngine {
         AudioTrack localTrack = null;
         try {
             int minimum = AudioTrack.getMinBufferSize(
-                    RATE, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT);
+                    RATE, android.media.AudioFormat.CHANNEL_OUT_MONO, android.media.AudioFormat.ENCODING_PCM_16BIT);
             if (minimum <= 0) minimum = BLOCK * 4;
             int bufferBytes = Math.max(minimum, BLOCK * 8);
 
