@@ -12,6 +12,9 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.Build;
 import android.os.IBinder;
+import android.os.Handler;
+import android.os.Looper;
+import android.widget.Toast;
 import android.util.Log;
 
 import java.io.IOException;
@@ -26,6 +29,7 @@ public class SoundscapeService extends Service {
     static final String ACTION_REPLACE = "com.avanature.soundscape.v2.REPLACE";
     static final String ACTION_VOLUME = "com.avanature.soundscape.v2.VOLUME";
     static final String EXTRA_ID = "sound_id";
+    static final String EXTRA_IDS = "sound_ids";
     static final String EXTRA_GAIN = "sound_gain";
     static final String EXTRA_VOLUME = "master_volume";
     private static final String CHANNEL = "avanature_playback";
@@ -36,6 +40,7 @@ public class SoundscapeService extends Service {
     private AudioFocusRequest focusRequest;
     private final Map<String, MediaPlayer> onlinePlayers = new HashMap<>();
     private final Map<String, Float> onlineGains = new HashMap<>();
+    private final Handler playbackHandler = new Handler(Looper.getMainLooper());
     private float masterVolume = 0.90f;
     private final AudioManager.OnAudioFocusChangeListener focusListener = change ->
             Log.i(TAG, "Audio focus changed: " + change);
@@ -92,10 +97,17 @@ public class SoundscapeService extends Service {
         try {
             if (engine == null) engine = new SoundscapeEngine();
             if (ACTION_REPLACE.equals(action)) {
-                String id = intent.getStringExtra(EXTRA_ID);
                 float gain = intent.getFloatExtra(EXTRA_GAIN, 0.90f);
                 clearAudioLayers();
-                if (id != null) addSound(id, gain);
+                ArrayList<String> ids = intent.getStringArrayListExtra(EXTRA_IDS);
+                if (ids != null && !ids.isEmpty()) {
+                    for (String id : ids) {
+                        if (id != null && !id.trim().isEmpty()) addSound(id, gain);
+                    }
+                } else {
+                    String id = intent.getStringExtra(EXTRA_ID);
+                    if (id != null) addSound(id, gain);
+                }
             } else if (ACTION_ADD.equals(action)) {
                 String id = intent.getStringExtra(EXTRA_ID);
                 float gain = intent.getFloatExtra(EXTRA_GAIN, 0.60f);
@@ -135,8 +147,15 @@ public class SoundscapeService extends Service {
         engine = new SoundscapeEngine();
     }
 
-    private String getOnlineRainUrl(String id) {
+    /*
+     * All catalog items use the same Android MediaPlayer output path.
+     * Rain was the only group previously routed through MediaPlayer; every
+     * other group fell back to the less reliable PCM AudioTrack synthesizer.
+     * These stable CC0 MP3 links now cover the complete visible sound catalog.
+     */
+    private String getOnlineSoundUrl(String id) {
         switch (id) {
+            // Rain
             case "rain_soft": return "https://sfxmint.com/dl/ambience-rain-62.mp3";
             case "rain_heavy": return "https://sfxmint.com/dl/ambience-rain-63.mp3";
             case "rain_window": return "https://sfxmint.com/dl/ambience-rain-21.mp3";
@@ -146,6 +165,61 @@ public class SoundscapeService extends Service {
             case "rain_drips": return "https://sfxmint.com/dl/ambience-rain-03.mp3";
             case "rain_puddle": return "https://sfxmint.com/dl/ambience-rain-34.mp3";
             case "bass_rain": return "https://sfxmint.com/dl/ambience-rain-42.mp3";
+
+            // Forest, birds, insects and running water
+            case "forest_wind": return "https://sfxmint.com/dl/windy-leafy-forest-ambience-01.mp3";
+            case "birdsong": return "https://sfxmint.com/dl/ambience-forest-40.mp3";
+            case "stream": return "https://sfxmint.com/dl/river-ambience-11.mp3";
+            case "waterfall": return "https://sfxmint.com/dl/water-stream-82.mp3";
+            case "leaves": return "https://sfxmint.com/dl/ambience-forest-50.mp3";
+            case "cricket": return "https://sfxmint.com/dl/animal-insect-70.mp3";
+            case "owl": return "https://sfxmint.com/dl/animal-owl-01.mp3";
+            case "night_air": return "https://sfxmint.com/dl/ambience-forest-50.mp3";
+
+            // Thunder and storm
+            case "thunder_far": return "https://sfxmint.com/dl/ambience-thunder-12.mp3";
+            case "thunder_close": return "https://sfxmint.com/dl/ambience-thunder-08.mp3";
+            case "storm_wind": return "https://sfxmint.com/dl/ambience-wind-34.mp3";
+            case "hail": return "https://sfxmint.com/dl/hail-02.mp3";
+            case "deep_thunder": return "https://sfxmint.com/dl/ambience-thunder-06.mp3";
+
+            // Animal calls
+            case "wolf_howl": return "https://sfxmint.com/dl/wolf-howl-02.mp3";
+            case "cat_purr": return "https://sfxmint.com/dl/cat-purr-04.mp3";
+            case "dog_bark": return "https://sfxmint.com/dl/animal-dog-bark-25.mp3";
+            case "frog": return "https://sfxmint.com/dl/animal-frog-14.mp3";
+            case "horse": return "https://sfxmint.com/dl/horse-neigh-03.mp3";
+            case "whale": return "https://sfxmint.com/dl/whale-song-03.mp3";
+            case "lion": return "https://sfxmint.com/dl/lion-roar-02.mp3";
+
+            // Sea and underwater
+            case "waves": return "https://sfxmint.com/dl/ambience-ocean-31.mp3";
+            case "beach": return "https://sfxmint.com/dl/ambience-ocean-11.mp3";
+            case "ocean_underwater": return "https://sfxmint.com/dl/underwater-ambience-01.mp3";
+
+            // Bass, noise and calm
+            case "heartbeat": return "https://sfxmint.com/dl/horror-heartbeat-44.mp3";
+            case "brown_noise": return "https://sfxmint.com/dl/tension-drone-08.mp3";
+            case "pink_noise": return "https://sfxmint.com/dl/white-noise-02.mp3";
+            case "white_noise": return "https://sfxmint.com/dl/white-noise-01.mp3";
+            case "low_wind": return "https://sfxmint.com/dl/ambience-wind-34.mp3";
+            case "sub_bass": return "https://sfxmint.com/dl/tension-drone-08.mp3";
+            case "bass_drips": return "https://sfxmint.com/dl/water-drip-76.mp3";
+            case "breathing": return "https://sfxmint.com/dl/breathing-02.mp3";
+            case "singing_bowl": return "https://sfxmint.com/dl/instrument-singing-bowl-53.mp3";
+
+            // Human, city, fire and space
+            case "cafe": return "https://sfxmint.com/dl/cafe-interior-ambience-03.mp3";
+            case "crowd": return "https://sfxmint.com/dl/crowd-murmur-81.mp3";
+            case "footsteps": return "https://sfxmint.com/dl/footsteps-wood-60.mp3";
+            case "train": return "https://sfxmint.com/dl/steam-train-motion-01.mp3";
+            case "city": return "https://sfxmint.com/dl/city-night-ambience-03.mp3";
+            case "fire": return "https://sfxmint.com/dl/ambience-fireplace-50.mp3";
+            case "campfire": return "https://sfxmint.com/dl/ambience-fireplace-50.mp3";
+            case "embers": return "https://sfxmint.com/dl/ambience-fireplace-50.mp3";
+            case "space_drone": return "https://sfxmint.com/dl/tension-drone-01.mp3";
+            case "cosmic_noise": return "https://sfxmint.com/dl/tension-drone-07.mp3";
+            case "moon_wind": return "https://sfxmint.com/dl/ambience-wind-34.mp3";
             default: return null;
         }
     }
@@ -154,14 +228,40 @@ public class SoundscapeService extends Service {
         return Math.max(0f, Math.min(1f, value));
     }
 
+    // Animal calls are short effects, not long ambience beds. Leave a natural
+    // pause before repeating them instead of machine-gunning the same call.
+    private boolean isOneShotCall(String id) {
+        return "wolf_howl".equals(id) || "dog_bark".equals(id) || "frog".equals(id)
+                || "horse".equals(id) || "whale".equals(id) || "lion".equals(id)
+                || "owl".equals(id);
+    }
+
+    private void replayOneShotAfterPause(String id, MediaPlayer player) {
+        long pauseMs = 1800L + (Math.abs(id.hashCode()) % 1800L);
+        playbackHandler.postDelayed(() -> {
+            if (onlinePlayers.get(id) != player) return;
+            try {
+                player.seekTo(0);
+                player.start();
+            } catch (RuntimeException ex) {
+                Log.e(TAG, "Could not replay animal sample: " + id, ex);
+                Float gain = onlineGains.get(id);
+                fallbackToSynth(id, gain == null ? 0.90f : gain, player);
+            }
+        }, pauseMs);
+    }
+
     private void addSound(String id, float gain) {
         float safeGain = clamp(gain);
-        String url = getOnlineRainUrl(id);
+        String url = getOnlineSoundUrl(id);
         if (url == null) {
-            engine.add(id, safeGain);
+            Log.w(TAG, "No online sample mapping for catalog ID: " + id);
+            if (engine != null) engine.add(id, safeGain);
+            Toast.makeText(this, "برای این صدا نمونهٔ آنلاین ثبت نشده است.", Toast.LENGTH_SHORT).show();
             return;
         }
         if (onlinePlayers.containsKey(id)) return;
+
         MediaPlayer player = new MediaPlayer();
         onlinePlayers.put(id, player);
         onlineGains.put(id, safeGain);
@@ -171,28 +271,36 @@ public class SoundscapeService extends Service {
                     .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                     .build());
             player.setDataSource(url);
-            player.setLooping(true);
+            player.setLooping(!isOneShotCall(id));
             float output = clamp(masterVolume * safeGain);
             player.setVolume(output, output);
             player.setOnPreparedListener(prepared -> {
                 if (onlinePlayers.get(id) != prepared) return;
                 try {
                     prepared.start();
-                    Log.i(TAG, "CC0 rain sample started: " + id + " from " + url);
+                    Log.i(TAG, "CC0 sample started via MediaPlayer: " + id + " from " + url);
                 } catch (RuntimeException ex) {
-                    Log.e(TAG, "Could not start online rain sample: " + id, ex);
+                    Log.e(TAG, "Could not start online sample: " + id, ex);
                     fallbackToSynth(id, safeGain, prepared);
                 }
             });
+            player.setOnCompletionListener(completed -> {
+                if (isOneShotCall(id) && onlinePlayers.get(id) == completed) {
+                    replayOneShotAfterPause(id, completed);
+                }
+            });
             player.setOnErrorListener((failed, what, extra) -> {
-                Log.e(TAG, "Online rain sample failed: " + id + ", what=" + what + ", extra=" + extra);
+                Log.e(TAG, "Online sample failed: " + id + ", what=" + what + ", extra=" + extra + ", url=" + url);
                 fallbackToSynth(id, safeGain, failed);
+                Toast.makeText(this, "دریافت صدای «" + id + "» ناموفق بود؛ اتصال اینترنت را بررسی کن.", Toast.LENGTH_LONG).show();
                 return true;
             });
             player.prepareAsync();
+            Log.i(TAG, "Preparing sound sample via MediaPlayer: " + id);
         } catch (IOException | RuntimeException ex) {
-            Log.e(TAG, "Could not prepare online rain sample: " + id, ex);
+            Log.e(TAG, "Could not prepare online sample: " + id + " from " + url, ex);
             fallbackToSynth(id, safeGain, player);
+            Toast.makeText(this, "باز کردن نمونهٔ صوتی ناموفق بود؛ اینترنت را بررسی کن.", Toast.LENGTH_LONG).show();
         }
     }
 
@@ -229,7 +337,7 @@ public class SoundscapeService extends Service {
             if (gain == null) continue;
             float output = clamp(masterVolume * gain);
             try { entry.getValue().setVolume(output, output); }
-            catch (RuntimeException ex) { Log.w(TAG, "Could not update online rain volume", ex); }
+            catch (RuntimeException ex) { Log.w(TAG, "Could not update MediaPlayer volume", ex); }
         }
     }
 
@@ -259,7 +367,7 @@ public class SoundscapeService extends Service {
                 : new Notification.Builder(this);
 
         return builder.setSmallIcon(android.R.drawable.ic_media_play)
-                .setContentTitle("آواطبیعت پلاس")
+                .setContentTitle("آواطبیعت استودیو")
                 .setContentText("در حال پخش ترکیب صداهای انتخاب‌شده")
                 .setContentIntent(content)
                 .setOngoing(true)
