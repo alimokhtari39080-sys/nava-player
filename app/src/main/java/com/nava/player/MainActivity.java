@@ -91,6 +91,7 @@ public final class MainActivity extends Activity {
     private LinearLayout playerCard;
     private ImageView coverArt;
     private LinearLayout aiStudioCard;
+    private LinearLayout moodChips;
     private MusicMood selectedMood = MusicMood.PERSONAL;
     private int activeBackground = BG;
     private int activePanel = PANEL;
@@ -143,6 +144,9 @@ public final class MainActivity extends Activity {
         loadGenreOverrides();
         loadListeningProfile();
         sortMode = getPreferences(MODE_PRIVATE).getInt("library_sort_mode", 0);
+        try {
+            selectedMood = MusicMood.valueOf(getPreferences(MODE_PRIVATE).getString("studio_mood", "PERSONAL"));
+        } catch (IllegalArgumentException ignored) { selectedMood = MusicMood.PERSONAL; }
         buildUi();
         connectToPlaybackService();
         requestAudioPermissionIfNeeded();
@@ -354,6 +358,7 @@ public final class MainActivity extends Activity {
         sleep.setOnClickListener(v -> chooseSleepTimer());
 
         setContentView(root);
+        applyMoodTheme(selectedMood);
     }
 
     private void buildAiStudioCard() {
@@ -682,6 +687,7 @@ public final class MainActivity extends Activity {
         scroll.setHorizontalScrollBarEnabled(false);
         scroll.setFillViewport(false);
         LinearLayout chips = new LinearLayout(this);
+        moodChips = chips;
         chips.setOrientation(LinearLayout.HORIZONTAL);
         chips.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         MusicMood[] moods = {MusicMood.HAPPY, MusicMood.SAD, MusicMood.ENERGY,
@@ -691,6 +697,7 @@ public final class MainActivity extends Activity {
             final MusicMood mood = moods[i];
             TextView chip = text(labels[i], 12, Color.WHITE, true);
             chip.setGravity(Gravity.CENTER);
+            chip.setTag(mood);
             chip.setPadding(dp(15), 0, dp(15), 0);
             chip.setBackground(round(activePanel, 18));
             LinearLayout.LayoutParams itemParams = new LinearLayout.LayoutParams(-2, dp(40));
@@ -698,6 +705,7 @@ public final class MainActivity extends Activity {
             chips.addView(chip, itemParams);
             chip.setOnClickListener(v -> {
                 selectedMood = mood;
+                getPreferences(MODE_PRIVATE).edit().putString("studio_mood", mood.name()).apply();
                 applyMoodTheme(mood);
                 Toast.makeText(this, "تم «" + mood.label + "» فعال شد", Toast.LENGTH_SHORT).show();
             });
@@ -756,6 +764,15 @@ public final class MainActivity extends Activity {
         }
         if (playButton != null) playButton.setTextColor(accent);
         if (genreTabs != null) updateGenreTabStyles();
+        if (moodChips != null) {
+            for (int i = 0; i < moodChips.getChildCount(); i++) {
+                View child = moodChips.getChildAt(i);
+                if (!(child instanceof TextView) || !(child.getTag() instanceof MusicMood)) continue;
+                boolean active = child.getTag() == selectedMood;
+                child.setBackground(round(active ? accent : panel, 18));
+                ((TextView) child).setTextColor(active ? Color.rgb(20, 18, 28) : Color.WHITE);
+            }
+        }
     }
 
     private GradientDrawable gradientRound(int first, int second, int radius) {
