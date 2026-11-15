@@ -145,7 +145,7 @@ public class SoundscapeService extends Service {
             case "rain_tent": return "https://sfxmint.com/dl/ambience-rain-32.mp3";
             case "rain_drips": return "https://sfxmint.com/dl/ambience-rain-03.mp3";
             case "rain_puddle": return "https://sfxmint.com/dl/ambience-rain-34.mp3";
-            case "bass_rain": return "https://sfxmint.com/dl/ambience-rain-34.mp3";
+            case "bass_rain": return "https://sfxmint.com/dl/ambience-rain-42.mp3";
             default: return null;
         }
     }
