@@ -1,4 +1,5 @@
-# Rebuild the latest NAVA AI launcher resources and package identity.
+# NAVA Player Studio build workflow with an independent application ID and launcher artwork.
+# Rebuild only the Studio edition on its dedicated branch.
 name: Android builds
 
 on:
