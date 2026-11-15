@@ -1,0 +1,1 @@
+AvaNature Studio 1.0.0 — Separate application ID, custom launcher icon, unique CC0 rain audio tracks, local fallback engine and build/lint verification.
