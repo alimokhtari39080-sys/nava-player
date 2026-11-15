@@ -176,40 +176,34 @@ public class SoundscapeService extends Service {
         float safeGain = clamp(gain);
         if (onlinePlayers.containsKey(id)) return;
         int resourceId = getBundledSoundResource(id);
-        MediaPlayer player = new MediaPlayer();
-        onlinePlayers.put(id, player);
-        onlineGains.put(id, safeGain);
-        try (android.content.res.AssetFileDescriptor afd = getResources().openRawResourceFd(resourceId)) {
-            if (afd == null) throw new IOException("Bundled sound resource is unavailable: " + id);
-            player.setAudioAttributes(new AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                    .build());
-            player.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
+        MediaPlayer player = null;
+        try {
+            // MediaPlayer.create handles compressed and uncompressed APK raw resources.
+            player = MediaPlayer.create(this, resourceId);
+            if (player == null) throw new IllegalStateException("Could not decode bundled audio resource " + resourceId);
             player.setLooping(true);
             float output = clamp(masterVolume * safeGain);
             player.setVolume(output, output);
-            player.setOnPreparedListener(prepared -> {
-                if (onlinePlayers.get(id) != prepared) return;
-                try {
-                    prepared.start();
-                    Log.i(TAG, "Bundled offline sample started: " + id + ", resource=" + resourceId);
-                } catch (RuntimeException ex) {
-                    Log.e(TAG, "Could not start bundled sample: " + id, ex);
-                    reportSampleFailure(id, prepared);
-                }
-            });
+            onlinePlayers.put(id, player);
+            onlineGains.put(id, safeGain);
+            MediaPlayer activePlayer = player;
             player.setOnErrorListener((failed, what, extra) -> {
                 Log.e(TAG, "Bundled sample failed: " + id + ", what=" + what + ", extra=" + extra);
                 reportSampleFailure(id, failed);
                 Toast.makeText(this, "خطا در پخش صدای داخلی برنامه: " + id, Toast.LENGTH_LONG).show();
                 return true;
             });
-            player.prepareAsync();
-        } catch (IOException | RuntimeException ex) {
-            Log.e(TAG, "Could not prepare bundled offline sample: " + id, ex);
-            reportSampleFailure(id, player);
-            Toast.makeText(this, "پخش فایل داخلی ناموفق بود: " + id, Toast.LENGTH_LONG).show();
+            player.start();
+            Log.i(TAG, "Bundled offline sample started: " + id + ", resource=" + resourceId
+                    + ", playing=" + activePlayer.isPlaying());
+        } catch (RuntimeException ex) {
+            Log.e(TAG, "Could not start bundled offline sample: " + id, ex);
+            if (player != null) {
+                onlinePlayers.remove(id);
+                onlineGains.remove(id);
+                try { player.release(); } catch (RuntimeException ignored) { }
+            }
+            Toast.makeText(this, "پخش صدای داخلی ناموفق بود: " + id, Toast.LENGTH_LONG).show();
         }
     }
 
