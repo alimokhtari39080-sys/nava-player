@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "NAVAPlayer"
+rootProject.name = "NAVAPlayerStudio"
 include(":app")
