@@ -34,26 +34,16 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
-      - name: Package verified offline CC0 sound library
+      - name: Generate bundled offline ambience audio
         shell: bash
         run: |
           set -euo pipefail
-          RAW="AvaNatureStudio/app/src/main/res/raw"
-          mkdir -p "$RAW"
-          fetch() {
-            curl --fail --location --silent --show-error --retry 2 --retry-delay 1 --connect-timeout 10 --max-time 60 "$1" -o "$RAW/$2"
-            test -s "$RAW/$2"
-            test "$(stat -c%s "$RAW/$2")" -gt 10000
-            file "$RAW/$2"
-          }
-          fetch "https://sfxmint.com/dl/ambience-rain-62.mp3" rain_soft.mp3 &
-          fetch "https://sfxmint.com/dl/windy-leafy-forest-ambience-01.mp3" forest_wind.mp3 &
-          fetch "https://sfxmint.com/dl/ambience-forest-40.mp3" forest_birds.mp3 &
-          fetch "https://sfxmint.com/dl/harbor-ambience-04.mp3" water_ambience.mp3 &
-          fetch "https://sfxmint.com/dl/ambience-thunder-07.mp3" thunder_ambience.mp3 &
-          fetch "https://sfxmint.com/dl/ambience-fireplace-03.mp3" fireplace.mp3 &
-          fetch "https://sfxmint.com/dl/white-noise-01.mp3" white_noise.mp3 &
-          wait
+          python3 AvaNatureStudio/tools/generate_offline_audio.py
+          for f in AvaNatureStudio/app/src/main/res/raw/*.wav; do
+            test -s "$f"
+            test "$(stat -c%s "$f")" -gt 100000
+            file "$f"
+          done
       - name: Compile and lint
         run: gradle -p AvaNatureStudio --no-daemon :app:assembleDebug :app:lintDebug
       - name: Verify APK package metadata
