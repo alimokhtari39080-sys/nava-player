@@ -395,8 +395,9 @@ public final class MainActivity extends Activity {
                     .setPositiveButton("متوجه شدم", null).show();
             return;
         }
-        String[] moods = {"🌙 آرامش و ریلکس", "⚡ انرژی و هیجان", "🎯 تمرکز و مطالعه",
-                "📻 نوستالژی و خاطره", "🕯 معنوی و مداحی", "💜 مطابق سلیقه من"};
+        String[] moods = {"🌙 آرامش و ریلکس", "🌈 شاد و سرحال", "🌧 غمگین و احساسی",
+                "⚡ انرژی و هیجان", "🎯 تمرکز و مطالعه", "📻 نوستالژی و خاطره",
+                "🕯 معنوی و مداحی", "💜 مطابق سلیقه من"};
         MusicMood[] values = MusicMood.values();
         new AlertDialog.Builder(this)
                 .setTitle("NAVA AI  ·  دستیار موسیقی")
@@ -433,7 +434,7 @@ public final class MainActivity extends Activity {
         controller.setMediaItems(queue, 0, 0);
         controller.prepare();
         controller.play();
-        applyThemeForGenre(genreFor(ranked.get(0)));
+        applyMoodTheme(mood);
         String label = mood.label;
         Toast.makeText(this, "میکس هوشمند «" + label + "» ساخته شد · " + limit + " آهنگ",
                 Toast.LENGTH_LONG).show();
@@ -450,6 +451,14 @@ public final class MainActivity extends Activity {
             case CALM:
                 if (genre == MusicGenre.INSTRUMENTAL || genre == MusicGenre.TRADITIONAL) score += 8;
                 if (hasAny(words, "آرام", "ملایم", "ریلکس", "مدیتیشن", "piano", "ambient", "calm")) score += 5;
+                break;
+            case HAPPY:
+                if (genre == MusicGenre.POP) score += 9;
+                if (hasAny(words, "شاد", "خنده", "جشن", "happy", "dance", "party", "upbeat")) score += 7;
+                break;
+            case SAD:
+                if (hasAny(words, "غمگین", "دلتنگ", "جدایی", "گریه", "sad", "lonely", "heartbreak", "slow")) score += 9;
+                if (genre == MusicGenre.TRADITIONAL || genre == MusicGenre.OLDIES) score += 3;
                 break;
             case ENERGY:
                 if (genre == MusicGenre.POP) score += 8;
@@ -540,7 +549,7 @@ public final class MainActivity extends Activity {
     }
 
     private enum MusicMood {
-        CALM("آرامش"), ENERGY("انرژی"), FOCUS("تمرکز"),
+        CALM("آرامش"), HAPPY("شاد"), SAD("غمگین"), ENERGY("انرژی"), FOCUS("تمرکز"),
         NOSTALGIA("نوستالژی"), SPIRITUAL("معنوی"), PERSONAL("سلیقه شخصی");
         final String label;
         MusicMood(String label) { this.label = label; }
@@ -583,7 +592,7 @@ public final class MainActivity extends Activity {
             if (!(child instanceof TextView) || !(child.getTag() instanceof MusicGenre)) continue;
             MusicGenre genre = (MusicGenre) child.getTag();
             boolean selected = genre == selectedGenre;
-            child.setBackground(round(selected ? genre.accent : PANEL, 18));
+            child.setBackground(round(selected ? activeAccent : activePanel, 18));
             ((TextView) child).setTextColor(selected ? Color.rgb(20, 18, 28) : Color.WHITE);
         }
     }
@@ -654,19 +663,96 @@ public final class MainActivity extends Activity {
     }
 
     private void applyThemeForGenre(MusicGenre genre) {
-        MusicGenre theme = genre == null || genre == MusicGenre.ALL ? MusicGenre.OTHER : genre;
-        if (root != null) {
-            GradientDrawable background = new GradientDrawable(
-                    GradientDrawable.Orientation.TOP_BOTTOM,
-                    new int[]{theme.backgroundColor, BG});
-            root.setBackground(background);
+        applyMoodTheme(selectedMood);
+    }
+
+    private void buildMoodSelector() {
+        HorizontalScrollView scroll = new HorizontalScrollView(this);
+        scroll.setHorizontalScrollBarEnabled(false);
+        scroll.setFillViewport(false);
+        LinearLayout chips = new LinearLayout(this);
+        chips.setOrientation(LinearLayout.HORIZONTAL);
+        chips.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        MusicMood[] moods = {MusicMood.HAPPY, MusicMood.SAD, MusicMood.ENERGY,
+                MusicMood.CALM, MusicMood.FOCUS, MusicMood.NOSTALGIA, MusicMood.SPIRITUAL};
+        String[] labels = {"🌈 شاد", "🌧 غمگین", "⚡ پرانرژی", "🌙 آرام", "🎯 تمرکز", "📻 خاطره", "🕯 معنوی"};
+        for (int i = 0; i < moods.length; i++) {
+            final MusicMood mood = moods[i];
+            TextView chip = text(labels[i], 12, Color.WHITE, true);
+            chip.setGravity(Gravity.CENTER);
+            chip.setPadding(dp(15), 0, dp(15), 0);
+            chip.setBackground(round(activePanel, 18));
+            LinearLayout.LayoutParams itemParams = new LinearLayout.LayoutParams(-2, dp(40));
+            itemParams.leftMargin = dp(5);
+            chips.addView(chip, itemParams);
+            chip.setOnClickListener(v -> {
+                selectedMood = mood;
+                applyMoodTheme(mood);
+                Toast.makeText(this, "تم «" + mood.label + "» فعال شد", Toast.LENGTH_SHORT).show();
+            });
         }
-        if (playerCard != null) playerCard.setBackground(round(theme.panelColor, 22));
-        if (nowTitle != null) nowTitle.setTextColor(theme.accent);
+        scroll.addView(chips, new HorizontalScrollView.LayoutParams(-2, dp(42)));
+        LinearLayout.LayoutParams scrollParams = new LinearLayout.LayoutParams(-1, dp(48));
+        scrollParams.topMargin = dp(5);
+        scrollParams.bottomMargin = dp(3);
+        root.addView(scroll, scrollParams);
+    }
+
+    private void applyMoodTheme(MusicMood mood) {
+        selectedMood = mood == null ? MusicMood.PERSONAL : mood;
+        int start, end, panel, accent, secondary;
+        switch (selectedMood) {
+            case HAPPY:
+                start = Color.rgb(47, 18, 48); end = Color.rgb(93, 35, 68);
+                panel = Color.rgb(57, 27, 58); accent = Color.rgb(255, 145, 190); secondary = Color.rgb(255, 211, 127); break;
+            case SAD:
+                start = Color.rgb(10, 22, 43); end = Color.rgb(28, 48, 78);
+                panel = Color.rgb(24, 39, 64); accent = Color.rgb(133, 187, 236); secondary = Color.rgb(190, 177, 233); break;
+            case ENERGY:
+                start = Color.rgb(40, 14, 36); end = Color.rgb(91, 29, 57);
+                panel = Color.rgb(58, 25, 49); accent = Color.rgb(255, 105, 125); secondary = Color.rgb(255, 194, 102); break;
+            case CALM:
+                start = Color.rgb(9, 34, 36); end = Color.rgb(24, 65, 67);
+                panel = Color.rgb(20, 49, 51); accent = Color.rgb(128, 229, 207); secondary = Color.rgb(181, 230, 216); break;
+            case FOCUS:
+                start = Color.rgb(12, 24, 44); end = Color.rgb(33, 54, 81);
+                panel = Color.rgb(24, 41, 64); accent = Color.rgb(126, 187, 255); secondary = Color.rgb(183, 211, 255); break;
+            case NOSTALGIA:
+                start = Color.rgb(39, 27, 19); end = Color.rgb(82, 54, 32);
+                panel = Color.rgb(52, 37, 26); accent = Color.rgb(244, 195, 125); secondary = Color.rgb(232, 173, 113); break;
+            case SPIRITUAL:
+                start = Color.rgb(29, 21, 43); end = Color.rgb(73, 48, 77);
+                panel = Color.rgb(47, 34, 55); accent = Color.rgb(223, 193, 244); secondary = Color.rgb(240, 205, 145); break;
+            default:
+                start = BG; end = Color.rgb(27, 23, 51);
+                panel = PANEL; accent = PURPLE; secondary = MINT; break;
+        }
+        activeBackground = start; activePanel = panel; activeAccent = accent; activeSecondaryAccent = secondary;
+        GradientDrawable background = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                new int[]{start, end, BG});
+        root.setBackground(background);
+        if (playerCard != null) playerCard.setBackground(gradientRound(panel, end, 22));
+        if (aiStudioCard != null) aiStudioCard.setBackground(gradientRound(end, panel, 20));
+        if (searchBox != null) searchBox.setBackground(gradientRound(panel, end, 16));
+        if (songList != null) songList.setBackgroundColor(start);
+        if (nowTitle != null) nowTitle.setTextColor(accent);
+        if (nowArtist != null) nowArtist.setTextColor(secondary);
+        if (statusText != null) statusText.setTextColor(secondary);
+        if (coverArt != null) coverArt.setBackground(gradientRound(end, panel, 24));
         if (seekBar != null) {
-            seekBar.setProgressTintList(android.content.res.ColorStateList.valueOf(theme.accent));
-            seekBar.setThumbTintList(android.content.res.ColorStateList.valueOf(MINT));
+            seekBar.setProgressTintList(android.content.res.ColorStateList.valueOf(accent));
+            seekBar.setThumbTintList(android.content.res.ColorStateList.valueOf(secondary));
         }
+        if (playButton != null) playButton.setTextColor(accent);
+        if (genreTabs != null) updateGenreTabStyles();
+    }
+
+    private GradientDrawable gradientRound(int first, int second, int radius) {
+        GradientDrawable drawable = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                new int[]{first, second});
+        drawable.setCornerRadius(dp(radius));
+        drawable.setStroke(dp(1), Color.argb(45, 255, 255, 255));
+        return drawable;
     }
 
     private void connectToPlaybackService() {
@@ -761,7 +847,7 @@ public final class MainActivity extends Activity {
         applyLibrarySort();
         adapter.notifyDataSetChanged();
         updateGenreTabStyles();
-        applyThemeForGenre(selectedGenre == MusicGenre.ALL ? MusicGenre.OTHER : selectedGenre);
+        applyMoodTheme(selectedMood);
         if (statusText != null) {
             if (allSongs.isEmpty()) statusText.setText("هنوز آهنگی پیدا نشده؛ اجازه دسترسی یا وجود فایل موسیقی را بررسی کن.");
             else statusText.setText(shownSongs.size() + " آهنگ  •  " +
@@ -805,7 +891,7 @@ public final class MainActivity extends Activity {
         }
         ArrayList<MediaItem> queue = new ArrayList<>();
         for (Song song : shownSongs) queue.add(song.toMediaItem());
-        applyThemeForGenre(genreFor(shownSongs.get(position)));
+        applyMoodTheme(selectedMood);
         recordListening(shownSongs.get(position));
         controller.setMediaItems(queue, position, 0);
         controller.prepare();
@@ -981,7 +1067,10 @@ public final class MainActivity extends Activity {
             nowTitle.setText(title == null ? "در حال پخش" : title);
             nowArtist.setText(artist == null ? " " : artist);
             Song playing = findSongById(item.mediaId);
-            if (playing != null) applyThemeForGenre(genreFor(playing));
+            if (coverArt != null) {
+                if (playing != null && playing.artworkUri != null) coverArt.setImageURI(playing.artworkUri);
+                else coverArt.setImageDrawable(null);
+            }
         }
         playButton.setText(controller.isPlaying() ? "Ⅱ" : "▶");
         updateProgress();
