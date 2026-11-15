@@ -15,11 +15,11 @@ android {
 
     defaultConfig {
         // Deliberately separate from the original NAVA app so both can coexist.
-        applicationId = "com.nava.player.ai"
+        applicationId = "com.nava.player.studio"
         minSdk = 23
         targetSdk = 36
-        versionCode = 5
-        versionName = "1.3.1"
+        versionCode = 1
+        versionName = "1.0.0"
     }
 
     compileOptions {
