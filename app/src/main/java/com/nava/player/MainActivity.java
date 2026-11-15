@@ -257,18 +257,29 @@ public final class MainActivity extends Activity {
         playerCard.setBackground(round(PANEL, 22));
         root.addView(playerCard, new LinearLayout.LayoutParams(-1, -2));
 
+        LinearLayout trackHeader = new LinearLayout(this);
+        trackHeader.setOrientation(LinearLayout.HORIZONTAL);
+        trackHeader.setGravity(Gravity.CENTER_VERTICAL);
+        trackHeader.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         coverArt = new ImageView(this);
         coverArt.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        coverArt.setBackground(gradientRound(Color.rgb(31, 25, 55), Color.rgb(15, 35, 57), 24));
-        LinearLayout.LayoutParams coverParams = new LinearLayout.LayoutParams(dp(126), dp(126));
-        coverParams.gravity = Gravity.CENTER;
-        coverParams.bottomMargin = dp(12);
-        playerCard.addView(coverArt, coverParams);
-
+        coverArt.setBackground(gradientRound(Color.rgb(31, 25, 55), Color.rgb(15, 35, 57), 18));
+        LinearLayout.LayoutParams coverParams = new LinearLayout.LayoutParams(dp(68), dp(68));
+        coverParams.leftMargin = dp(12);
+        trackHeader.addView(coverArt, coverParams);
+        LinearLayout trackLabels = new LinearLayout(this);
+        trackLabels.setOrientation(LinearLayout.VERTICAL);
+        trackLabels.setGravity(Gravity.CENTER_VERTICAL);
         nowTitle = text("هنوز آهنگی پخش نمی‌شود", 15, Color.WHITE, true);
+        nowTitle.setMaxLines(1);
+        nowTitle.setEllipsize(android.text.TextUtils.TruncateAt.END);
         nowArtist = text("یک آهنگ از فهرست انتخاب کن", 12, MUTED, false);
-        playerCard.addView(nowTitle, new LinearLayout.LayoutParams(-1, dp(26)));
-        playerCard.addView(nowArtist, new LinearLayout.LayoutParams(-1, dp(22)));
+        nowArtist.setMaxLines(1);
+        nowArtist.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        trackLabels.addView(nowTitle, new LinearLayout.LayoutParams(-1, dp(28)));
+        trackLabels.addView(nowArtist, new LinearLayout.LayoutParams(-1, dp(24)));
+        trackHeader.addView(trackLabels, new LinearLayout.LayoutParams(0, -2, 1));
+        playerCard.addView(trackHeader, new LinearLayout.LayoutParams(-1, dp(76)));
 
         seekBar = new SeekBar(this);
         seekBar.setMax(1000);
