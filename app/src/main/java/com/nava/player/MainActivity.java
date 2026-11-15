@@ -833,7 +833,10 @@ public final class MainActivity extends Activity {
                 MediaStore.Audio.Media.ALBUM,
             MediaStore.Audio.Media.ALBUM_ID
         };
-        String selection = MediaStore.Audio.Media.IS_MUSIC + " != 0";
+        // Include audio files that Android has not tagged as "music" as well.
+        // Some downloaded tracks and locally copied songs are missing the IS_MUSIC flag.
+        String selection = MediaStore.Audio.Media.IS_MUSIC + " != 0 OR "
+                + MediaStore.Audio.Media.DURATION + " > 0";
         String order = MediaStore.Audio.Media.TITLE + " COLLATE NOCASE ASC";
         try (Cursor cursor = getContentResolver().query(collection, projection, selection, null, order)) {
             if (cursor != null) {
@@ -859,8 +862,11 @@ public final class MainActivity extends Activity {
                 }
             }
             refreshSongList();
+            if (allSongs.isEmpty() && statusText != null) {
+                statusText.setText("فایلی پیدا نشد؛ آهنگ‌ها باید روی خود گوشی ذخیره شده باشند، نه فقط داخل برنامه‌های پخش آنلاین.");
+            }
         } catch (SecurityException e) {
-            statusText.setText("دسترسی به فایل‌های موسیقی داده نشد.");
+            statusText.setText("اجازهٔ دسترسی به موسیقی گوشی داده نشده است. از تنظیمات برنامه، دسترسی موسیقی را فعال کن.");
         }
     }
 
