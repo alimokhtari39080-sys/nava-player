@@ -187,21 +187,15 @@ async function uploadObject(code,name,blob,type){
  if(!response.ok){const detail=await response.text();throw new Error("آپلود فایل ناموفق بود ("+response.status+"): "+detail.slice(0,180))}
  return url+"/storage/v1/object/public/"+bucket+"/"+objectPath.split("/").map(encodeURIComponent).join("/");
 }
-async function saveCard(payload){
+async function saveCard(payload,code){
  const url=CONFIG.supabaseUrl.replace(/\/$/,"");
- for(let attempt=0;attempt<3;attempt++){
-  const code=randomCode();
-  const row={code:code,payload:payload};
-  const response=await fetch(url+"/rest/v1/cardino_cards",{
-   method:"POST",
-   headers:{"apikey":CONFIG.supabaseAnonKey,"Authorization":"Bearer "+CONFIG.supabaseAnonKey,"Content-Type":"application/json","Prefer":"return=minimal"},
-   body:JSON.stringify(row)
-  });
-  if(response.ok)return code;
-  const detail=await response.text();
-  if(response.status!==409)throw new Error("ذخیره کارت ناموفق بود ("+response.status+"): "+detail.slice(0,180));
- }
- throw new Error("ساخت شناسه کوتاه ناموفق بود؛ دوباره تلاش کن");
+ const response=await fetch(url+"/rest/v1/cardino_cards",{
+  method:"POST",
+  headers:{"apikey":CONFIG.supabaseAnonKey,"Authorization":"Bearer "+CONFIG.supabaseAnonKey,"Content-Type":"application/json","Prefer":"return=minimal"},
+  body:JSON.stringify({code:code,payload:payload})
+ });
+ if(!response.ok){const detail=await response.text();throw new Error("ذخیره کارت ناموفق بود ("+response.status+"): "+detail.slice(0,180))}
+ return code;
 }
 async function createCard(){
  if(musicBusy)return;
@@ -217,7 +211,7 @@ async function createCard(){
   const code=randomCode();
   if(photoData)data.photo=await uploadObject(code,"photo.jpg",dataUrlToBlob(photoData),"image/jpeg");
   if(musicFile)data.music=await uploadObject(code,"music."+musicExt(musicFile),musicFile,musicMime(musicFile));
-  const savedCode=await saveCard(data);
+  const savedCode=await saveCard(data,code);
   lastLink=BASE+"?c="+savedCode;
   $("shareBtn").disabled=$("copyBtn").disabled=false;
   setStatus("کارت با موفقیت ذخیره شد. لینک کوتاه آماده ارسال است:<br><a href='"+lastLink+"' target='_blank' rel='noopener'>"+lastLink+"</a><br>حجم موسیقی: "+(musicFile?(musicFile.size/1024/1024).toFixed(1)+" مگابایت":"بدون موسیقی"));
