@@ -70,4 +70,16 @@ Cardino now creates a **shareable interactive invitation page**, not a flattened
 
 The viewer is a responsive web page and does not require the recipient to install Cardino. GitHub Actions publishes the viewer to GitHub Pages through `.github/workflows/cardino-pages.yml`. **One-time setup is required:** in repository Settings → Pages, set Build and deployment → Source to **GitHub Actions**, then re-run the failed “Publish Cardino interactive cards” workflow. The connected GitHub integration cannot grant itself the repository-level permission to enable Pages automatically. The Android app uses the editor at `cardino/src/main/assets/creator.html`.
 
-This first share-link prototype embeds compressed media in the URL fragment instead of using a private media-storage backend. Keep image/audio clips short so the generated link remains manageable. Browser music playback always begins after a user gesture.
+The cloud-backed Cardino flow stores card text and metadata in Supabase Postgres and uploads photo/audio files to Supabase Storage. The SMS/WhatsApp URL contains only a random 10-character code (served through the short /c/<code> route); it does not contain the music or image bytes. The recipient opens the public card page, taps the seal, and the full uploaded audio track starts after that user gesture. Legacy #d= links continue to work.
+
+#### One-time cloud setup (required for short links and full songs)
+
+1. Create a Supabase project.
+2. In the Supabase SQL Editor, run the complete script in cardino-backend/supabase-setup.sql.
+3. Copy your Supabase Project URL and Publishable key (the key beginning sb_publishable_) into both:
+   - cardino/src/main/assets/cardino-config.js
+   - cardino-web/cardino-config.js
+4. Do not put a Supabase Secret key or service-role key in either file. The publishable key is public by design; access is limited by the included Row Level Security policies.
+5. Rebuild the Android APK and allow the GitHub Pages workflow to publish the viewer.
+
+Cards and media are public to people who have the link or the media URL. Do not use Cardino for private or sensitive material. The current client-side public-upload prototype has basic file-size, MIME-type and database-payload limits; before a public commercial launch, add server-side rate limiting, abuse protection, expiry/cleanup and stronger ownership controls. Each audio file is currently limited to 20 MiB by the Supabase bucket.
