@@ -109,6 +109,11 @@ h1{font-size:20px;line-height:1.8;text-align:center;font-weight:500;margin:0 0 2
 <script>
 (async function(){
 const defaults={theme:"wedding",recipient:"",headline:"یک روز به‌یادماندنی",message:"امیدواریم در این لحظه زیبا کنار ما باشید.",sender:"با مهر",date:"",place:"",photo:"",music:"",musicName:""};
+function apiHeaders(key){
+ const headers={"apikey":key};
+ if(key&&key.startsWith("eyJ"))headers.Authorization="Bearer "+key;
+ return headers;
+}
 const themes={
  wedding:{kicker:"YOU ARE INVITED",label:"دعوت‌نامه"},
  birthday:{kicker:"HAPPY BIRTHDAY",label:"تبریک تولد"},
@@ -126,7 +131,7 @@ async function decodePayload(){
   if(!config.supabaseUrl||!config.supabaseAnonKey)throw new Error("فضای ذخیره‌سازی کارتینو هنوز پیکربندی نشده است");
   const base=config.supabaseUrl.replace(/\/$/,"");
   const response=await fetch(base+"/rest/v1/cardino_cards?code=eq."+encodeURIComponent(code)+"&select=payload",{
-   headers:{"apikey":config.supabaseAnonKey,"Authorization":"Bearer "+config.supabaseAnonKey}
+   headers:apiHeaders(config.supabaseAnonKey)
   });
   if(!response.ok)throw new Error("دریافت کارت از فضای ابری ناموفق بود ("+response.status+")");
   const rows=await response.json();
