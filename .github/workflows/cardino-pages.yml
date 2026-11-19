@@ -1,0 +1,57 @@
+name: Publish Cardino interactive cards
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'cardino-web/**'
+      - '.github/workflows/cardino-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: cardino-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Prepare website
+        run: |
+          mkdir -p site/cardino-web
+          cp cardino-web/view.html site/cardino-web/view.html
+          cat > site/index.html <<'EOF'
+          <!doctype html>
+          <html lang="fa" dir="rtl">
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width,initial-scale=1">
+          <meta http-equiv="refresh" content="0; url=cardino-web/view.html">
+          <title>کارتینو</title>
+          <p><a href="cardino-web/view.html">کارتینو</a></p>
+          </html>
+          EOF
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
