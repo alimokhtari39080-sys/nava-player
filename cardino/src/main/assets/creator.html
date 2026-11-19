@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#171321"><title>کارتینو | ساخت کارت تعاملی</title>
+<style>
+:root{--bg:#14121c;--panel:#211e2b;--line:#3d3748;--ink:#f7f0e4;--muted:#b7adbb;--gold:#dfbd7b;--rose:#b86c81}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% -20%,#49374c,#181521 50%,#100f17);color:var(--ink);font-family:Tahoma,sans-serif;padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+button,input,textarea{font:inherit}button{cursor:pointer}
+header{max-width:960px;margin:auto;padding:calc(17px + env(safe-area-inset-top)) 17px 14px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:10px}.mark{width:43px;height:43px;border-radius:14px;background:linear-gradient(145deg,#f4dda9,#b17d40);color:#29202c;display:grid;place-items:center;font-size:24px;box-shadow:0 8px 22px #0005}.brand{font-size:20px;font-weight:900}.sub{font-size:10px;color:var(--muted);margin-top:4px}.version{font-size:10px;color:var(--gold);border:1px solid #645139;padding:7px 10px;border-radius:22px}
+main{max-width:960px;margin:auto;padding:0 14px}.intro{text-align:center;margin:10px 0 18px}.intro h1{font-size:20px;margin:0 0 8px}.intro p{font-size:11px;color:var(--muted);line-height:1.9;margin:0}
+.section{background:linear-gradient(145deg,#242130,#1a1823);border:1px solid #393445;border-radius:20px;padding:14px;margin:12px 0;box-shadow:0 12px 35px #0002}
+.stitle{font-size:13px;font-weight:800;margin:0 0 12px;display:flex;gap:8px;align-items:center}.num{width:24px;height:24px;border-radius:50%;background:#d7b56b;color:#251c28;display:grid;place-items:center;font-size:11px}
+.categories{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.cat{min-height:68px;border:1px solid #474052;border-radius:13px;background:#191722;color:var(--ink);padding:8px 7px;text-align:center}.cat.active{border-color:var(--gold);background:#3b3040;box-shadow:0 0 0 1px #d7b56b33}.cat span{font-size:22px;display:block;margin-bottom:5px}.cat b{font-size:10px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:9px}.field{margin:0 0 11px}.field label{display:flex;justify-content:space-between;align-items:center;font-size:11px;margin:0 0 6px;color:#f1e6d4}.field small{font-size:9px;color:var(--muted)}
+.field input,.field textarea{width:100%;color:#fff7eb;border:1px solid #464050;background:#12111a;border-radius:11px;padding:11px 10px;font-size:12px;outline:0;min-width:0}.field textarea{min-height:78px;resize:vertical;line-height:1.8}.field input:focus,.field textarea:focus{border-color:var(--gold)}
+.uploads{display:grid;grid-template-columns:1fr 1fr;gap:9px}.upload{border:1px dashed #62566b;border-radius:13px;background:#15131e;padding:11px;display:flex;gap:9px;align-items:center;min-height:56px}.upload .ico{font-size:21px}.upload b{font-size:10px;display:block}.upload small{display:block;color:var(--muted);font-size:9px;margin-top:4px}.upload input{display:none}
+.filehint{font-size:9px;color:var(--muted);margin-top:8px;line-height:1.8}
+.preview{display:grid;place-items:center;padding:7px 0 4px;min-height:245px}
+.envelope{width:min(83vw,330px);height:185px;position:relative;perspective:1000px;filter:drop-shadow(0 18px 22px #0006);cursor:pointer}
+.back{position:absolute;inset:0;border-radius:9px;background:linear-gradient(135deg,#f2e4c9,#c9a27a)}
+.liner{position:absolute;inset:0;clip-path:polygon(0 0,100% 0,50% 60%);background:linear-gradient(130deg,#b98d7e,#e5cdb0)}
+.letter{position:absolute;left:8%;right:8%;top:8%;height:84%;border-radius:5px;background:#fbf2df;color:#684c50;display:flex;justify-content:center;align-items:center;flex-direction:column;text-align:center;box-shadow:0 3px 9px #0003;z-index:2;transition:transform 1s cubic-bezier(.2,.8,.2,1);padding:12px}
+.letter small{font:11px Georgia,serif;letter-spacing:.16em;color:#aa7f6b}.letter strong{font:23px Georgia,serif;line-height:1.4;margin:10px 0}.letter em{font:12px Georgia,serif;color:#9e6e7d}
+.left,.right,.bottom{position:absolute;inset:0;border-radius:9px;z-index:3;background:linear-gradient(130deg,#e7d6b7,#bd9473);clip-path:polygon(0 0,50% 58%,0 100%)}.right{clip-path:polygon(100% 0,50% 58%,100% 100%);background:linear-gradient(220deg,#e8dbc3,#b48a70)}.bottom{clip-path:polygon(0 100%,50% 45%,100% 100%);background:linear-gradient(180deg,#f0dfc1,#c79b75);z-index:4}
+.flap{position:absolute;top:0;left:0;right:0;height:65%;z-index:6;clip-path:polygon(0 0,100% 0,50% 100%);background:linear-gradient(150deg,#f1e2c8,#bd956e);transform-origin:50% 0;transition:transform .85s;backface-visibility:visible}
+.wax{position:absolute;z-index:8;left:50%;top:55%;transform:translate(-50%,-50%);width:54px;height:54px;border-radius:50%;background:radial-gradient(circle at 30% 25%,#c88b71,#783949);border:2px solid #e6c583;color:#fbe6b3;display:grid;place-items:center;font-size:23px}
+.envelope.open .flap{transform:rotateX(180deg);z-index:1}.envelope.open .letter{transform:translateY(-105px) scale(1.03);z-index:9}
+.preview-label{font-size:10px;color:var(--muted);text-align:center;margin:6px 0 0}
+.buttons{display:grid;grid-template-columns:1fr 1fr;gap:9px}.btn{border:0;border-radius:13px;min-height:49px;font-size:11px;font-weight:800;padding:11px 9px}.primary{grid-column:1/-1;background:linear-gradient(115deg,#ecd29a,#be914e);color:#241b28}.secondary{background:#332d40;color:#f8eddd;border:1px solid #5c5264}.outline{background:transparent;border:1px solid #61586b;color:#ded2c2}.status{font-size:10px;line-height:1.9;color:#bfc9ad;background:#222b25;border:1px solid #3c5844;border-radius:11px;padding:10px;margin-top:11px;display:none;word-break:break-word}.status a{color:#e9ce90;display:block;margin-top:6px}
+footer{text-align:center;color:#81788a;font-size:9px;margin:23px}
+@media(min-width:740px){main{padding:0 22px}.layout{display:grid;grid-template-columns:1fr 1fr;gap:13px}.layout .section{margin:12px 0}.categories{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<header><div class="logo"><div class="mark">✦</div><div><div class="brand">کارتینو</div><div class="sub">سازنده کارت‌های دیجیتال تعاملی</div></div></div><div class="version">نسخه آزمایشی</div></header>
+<main>
+<div class="intro"><h1>یک پاکت، یک غافلگیری، یک خاطره</h1><p>کارت را طراحی کن و لینک اختصاصی بساز؛ مخاطب روی مهر می‌زند و کارت را باز می‌کند.</p></div>
+<div class="layout">
+<div>
+<section class="section">
+<h2 class="stitle"><span class="num">۱</span> مناسبت کارت را انتخاب کن</h2>
+<div class="categories" id="categories">
+<button class="cat active" data-theme="wedding"><span>💍</span><b>عروسی</b></button>
+<button class="cat" data-theme="birthday"><span>🎂</span><b>تولد</b></button>
+<button class="cat" data-theme="condolence"><span>🕊️</span><b>تسلیت و یادبود</b></button>
+<button class="cat" data-theme="love"><span>❤️</span><b>عاشقانه</b></button>
+<button class="cat" data-theme="nowruz"><span>🌱</span><b>نوروز و عید</b></button>
+<button class="cat" data-theme="congrats"><span>🎉</span><b>تبریک</b></button>
+</div>
+</section>
+<section class="section">
+<h2 class="stitle"><span class="num">۲</span> متن و مشخصات کارت</h2>
+<div class="field"><label for="recipient">نام گیرنده یا نام زوج <small>اختیاری</small></label><input id="recipient" placeholder="مثلاً علی و سارا" maxlength="48"></div>
+<div class="field"><label for="headline">عنوان روی کارت</label><input id="headline" value="به جشن عشق ما دعوتید" maxlength="65"></div>
+<div class="field"><label for="message">متن پیام</label><textarea id="message" maxlength="420">با شادی فراوان، از شما دعوت می‌کنیم در این روز به‌یادماندنی کنار ما باشید. حضورتان مایه دلگرمی و شادی ماست.</textarea></div>
+<div class="field"><label for="sender">نام فرستنده</label><input id="sender" value="با مهر و احترام" maxlength="55"></div>
+<div class="two">
+<div class="field"><label for="date">تاریخ / زمان <small>اختیاری</small></label><input id="date" placeholder="مثلاً پنجشنبه ۲۵ آذر"></div>
+<div class="field"><label for="place">آدرس یا لینک مکان <small>اختیاری</small></label><input id="place" placeholder="آدرس یا لینک نقشه"></div>
+</div>
+</section>
+<section class="section">
+<h2 class="stitle"><span class="num">۳</span> عکس و موسیقی</h2>
+<div class="uploads">
+<label class="upload" for="photo"><span class="ico">🖼️</span><span><b>افزودن عکس</b><small>روی کارت نمایش داده می‌شود</small><input id="photo" type="file" accept="image/*"></span></label>
+<label class="upload" for="song"><span class="ico">🎵</span><span><b>انتخاب موسیقی</b><small>۱۵ ثانیه آغازین موسیقی</small><input id="song" type="file" accept="audio/*"></span></label>
+</div>
+<div class="filehint" id="filehint">موسیقی با لمس مهر توسط گیرنده آغاز می‌شود. فایل موسیقی به کلیپ کوتاه تبدیل می‌شود تا لینک کارت سبک‌تر بماند.</div>
+</section>
+</div>
+<div>
+<section class="section">
+<h2 class="stitle"><span class="num">۴</span> شکل پاکت و پیش‌نمایش بازشدن</h2>
+<div class="preview">
+<div class="envelope" id="demoEnvelope">
+<div class="back"></div><div class="liner"></div>
+<div class="letter"><small id="demoLabel">YOU ARE INVITED</small><strong id="demoHeadline">به جشن عشق ما دعوتید</strong><em id="demoRecipient">کارتینو</em></div>
+<div class="left"></div><div class="right"></div><div class="bottom"></div><div class="flap"></div><div class="wax">✦</div>
+</div>
+</div>
+<p class="preview-label">برای آزمایش، روی مهر این پاکت بزن</p>
+</section>
+<section class="section">
+<h2 class="stitle"><span class="num">۵</span> ساخت و ارسال کارت</h2>
+<div class="buttons">
+<button class="btn primary" id="createBtn">✦ ساخت لینک کارت تعاملی</button>
+<button class="btn secondary" id="shareBtn" disabled>ارسال لینک</button>
+<button class="btn outline" id="copyBtn" disabled>کپی لینک</button>
+</div>
+<div class="status" id="status"></div>
+<p class="filehint">گیرنده برای دیدن و باز کردن کارت به نصب برنامه نیاز ندارد؛ لینک در مرورگر گوشی باز می‌شود. موسیقی فقط پس از لمس مهر پخش خواهد شد.</p>
+</section>
+</div>
+</div>
+</main>
+<footer>ساخته‌شده با عشق • CARDINO</footer>
+<script>
+(function(){
+const BASE="https://alimokhtari39080-sys.github.io/nava-player/cardino-web/view.html#d=";
+const themes={
+ wedding:{label:"YOU ARE INVITED",headline:"به جشن عشق ما دعوتید",message:"با شادی فراوان، از شما دعوت می‌کنیم در این روز به‌یادماندنی کنار ما باشید. حضورتان مایه دلگرمی و شادی ماست.",sender:"با مهر و احترام"},
+ birthday:{label:"HAPPY BIRTHDAY",headline:"تولدت مبارک!",message:"امیدوارم سال تازه زندگی‌ات پر از لبخند، سلامتی و اتفاق‌های قشنگ باشد. همیشه بدرخشی!",sender:"با بهترین آرزوها"},
+ condolence:{label:"WITH DEEPEST SYMPATHY",headline:"با نهایت تأسف و همدردی",message:"درگذشت عزیزتان را صمیمانه تسلیت می‌گوییم. برای شما و خانواده محترمتان شکیبایی و آرامش آرزو داریم.",sender:"در کنار شما هستیم"},
+ love:{label:"WITH LOVE",headline:"برای تو، همیشه",message:"بودنت قشنگ‌ترین اتفاق است. کنار تو ساده‌ترین لحظه‌ها هم به خاطره‌ای ماندگار تبدیل می‌شوند.",sender:"با تمام قلبم"},
+ nowruz:{label:"HAPPY NOWRUZ",headline:"نوروزتان پیروز",message:"سال نو، آغاز روزهایی روشن و سرشار از سلامتی، آرامش و برکت باشد. بهارتان سبز و دلتان شاد.",sender:"با آرزوی بهترین‌ها"},
+ congrats:{label:"CONGRATULATIONS",headline:"تبریک صمیمانه",message:"این موفقیت ارزشمند، نتیجه تلاش و پشتکار توست. امیدوارم مسیر پیش رو پر از فرصت‌های درخشان باشد.",sender:"از صمیم قلب تبریک می‌گویم"}
+};
+let theme="wedding",photoData="",musicData="",musicBusy=false,lastLink="";
+const $=id=>document.getElementById(id);
+function updateDemo(){ $("demoHeadline").textContent=$("headline").value||"کارتینو";$("demoRecipient").textContent=$("recipient").value||"با مهر"; }
+["recipient","headline"].forEach(id=>$(id).addEventListener("input",updateDemo));
+$("demoEnvelope").addEventListener("click",()=>{$("demoEnvelope").classList.toggle("open")});
+document.querySelectorAll(".cat").forEach(btn=>btn.addEventListener("click",()=>{
+ document.querySelectorAll(".cat").forEach(b=>b.classList.remove("active"));btn.classList.add("active");theme=btn.dataset.theme;
+ const d=themes[theme];$("headline").value=d.headline;$("message").value=d.message;$("sender").value=d.sender;$("demoLabel").textContent=d.label;$("demoEnvelope").classList.remove("open");updateDemo();lastLink="";$("shareBtn").disabled=$("copyBtn").disabled=true;
+}));
+function readAsDataURL(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)})}
+async function compressPhoto(file){
+ const source=await createImageBitmap(file);const scale=Math.min(1,620/source.width,760/source.height);const w=Math.max(1,Math.round(source.width*scale)),h=Math.max(1,Math.round(source.height*scale));
+ const c=document.createElement("canvas");c.width=w;c.height=h;c.getContext("2d").drawImage(source,0,0,w,h);source.close();
+ return c.toDataURL("image/jpeg",.68);
+}
+async function compressAudio(file){
+ const AC=window.AudioContext||window.webkitAudioContext;
+ if(!AC||!window.MediaRecorder) {
+  if(file.size>200000){throw new Error("این گوشی فشرده‌سازی موسیقی را پشتیبانی نمی‌کند؛ یک فایل کوتاه‌تر انتخاب کن")}
+  return await readAsDataURL(file);
+ }
+ const context=new AC();let stream=null;
+ try{
+  const buffer=await context.decodeAudioData(await file.arrayBuffer());
+  const duration=Math.min(15,buffer.duration);
+  const clip=context.createBuffer(buffer.numberOfChannels,Math.ceil(duration*buffer.sampleRate),buffer.sampleRate);
+  for(let ch=0;ch<buffer.numberOfChannels;ch++)clip.copyToChannel(buffer.getChannelData(ch).subarray(0,clip.length),ch);
+  const dest=context.createMediaStreamDestination();stream=dest.stream;
+  const mime=["audio/webm;codecs=opus","audio/webm","audio/ogg;codecs=opus"].find(m=>MediaRecorder.isTypeSupported(m))||"";
+  const recorder=new MediaRecorder(stream,{mimeType:mime||undefined,audioBitsPerSecond:48000});
+  const chunks=[];recorder.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+  const complete=new Promise(resolve=>recorder.onstop=()=>resolve(new Blob(chunks,{type:recorder.mimeType||"audio/webm"})));
+  const source=context.createBufferSource();source.buffer=clip;source.connect(dest);await context.resume();recorder.start();source.start();
+  await new Promise(resolve=>setTimeout(resolve,duration*1000+300));recorder.stop();
+  const blob=await complete;
+  if(blob.size>220000)throw new Error("حجم موسیقی هنوز زیاد است؛ لطفاً یک قطعه کوتاه‌تر انتخاب کن");
+  return await readAsDataURL(blob);
+ } finally {if(stream)stream.getTracks().forEach(t=>t.stop());await context.close()}
+}
+$("photo").addEventListener("change",async e=>{
+ const file=e.target.files&&e.target.files[0];if(!file)return;
+ try{photoData=await compressPhoto(file);$("filehint").textContent="عکس آماده است؛ پس از بازشدن پاکت داخل کارت نمایش داده می‌شود."}catch(err){alert("خواندن عکس ناموفق بود")}
+});
+$("song").addEventListener("change",async e=>{
+ const file=e.target.files&&e.target.files[0];if(!file)return;if(musicBusy)return;musicBusy=true;$("createBtn").disabled=true;
+ $("filehint").textContent="در حال آماده‌سازی موسیقی کوتاه برای کارت...";
+ try{musicData=await compressAudio(file);$("filehint").textContent="موسیقی آماده است؛ پس از لمس مهر و بازشدن کارت پخش می‌شود."}
+ catch(err){musicData="";alert(err.message||"آماده‌سازی موسیقی ناموفق بود")}
+ finally{musicBusy=false;$("createBtn").disabled=false}
+});
+function encode(obj){
+ const bytes=new TextEncoder().encode(JSON.stringify(obj));let binary="";for(let i=0;i<bytes.length;i+=0x8000)binary+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));
+ return btoa(binary).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+function setStatus(html){$("status").innerHTML=html;$("status").style.display="block"}
+$("createBtn").addEventListener("click",()=>{
+ if(musicBusy){alert("آماده‌سازی موسیقی هنوز تمام نشده است");return}
+ const data={v:1,theme:theme,recipient:$("recipient").value.trim(),headline:$("headline").value.trim()||themes[theme].headline,message:$("message").value.trim(),sender:$("sender").value.trim(),date:$("date").value.trim(),place:$("place").value.trim(),photo:photoData,music:musicData};
+ if(!data.message){alert("متن کارت را وارد کن");return}
+ const payload=encode(data);lastLink=BASE+payload;
+ if(lastLink.length>1450000){lastLink="";$("shareBtn").disabled=$("copyBtn").disabled=true;alert("اطلاعات رسانه‌ای کارت بیش از اندازه بزرگ است. عکس کوچک‌تر یا موسیقی کوتاه‌تری انتخاب کن.");return}
+ $("shareBtn").disabled=$("copyBtn").disabled=false;
+ setStatus("لینک اختصاصی کارت ساخته شد. این لینک را برای مخاطب بفرست؛ او پاکت را باز می‌کند و کارت را می‌بیند.<br><a href='"+lastLink+"' target='_blank' rel='noopener'>پیش‌نمایش کارت گیرنده</a>");
+ $("status").scrollIntoView({behavior:"smooth",block:"nearest"});
+});
+$("shareBtn").addEventListener("click",()=>{
+ if(!lastLink)return;
+ if(window.CardinoNative&&window.CardinoNative.shareText){window.CardinoNative.shareText("یک کارت ویژه برای تو 💌\n"+lastLink)}
+ else if(navigator.share){navigator.share({title:"کارت ویژه کارتینو",text:"یک کارت برای تو 💌",url:lastLink}).catch(()=>{})}
+ else{copyLink()}
+});
+async function copyLink(){
+ try{await navigator.clipboard.writeText(lastLink);setStatus("لینک کارت کپی شد؛ می‌توانی آن را در واتساپ یا پیام‌رسان بفرستی.")}
+ catch(e){const el=document.createElement("textarea");el.value=lastLink;document.body.appendChild(el);el.select();try{document.execCommand("copy");setStatus("لینک کارت کپی شد.")}catch(err){setStatus("لینک را از این قسمت کپی کن:<br>"+lastLink)}el.remove()}
+}
+$("copyBtn").addEventListener("click",copyLink);
+updateDemo();
+})();
+</script>
+</body>
+</html>
