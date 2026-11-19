@@ -27,10 +27,10 @@ jobs:
           import re
           from pathlib import Path
           html = Path("cardino/src/main/assets/creator.html").read_text()
-          scripts = re.findall(r'<script(?![^>]*\\bsrc=)[^>]*>(.*?)</script\\s*>', html, re.I | re.S)
+          scripts = re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script\s*>', html, re.I | re.S)
           if not scripts:
               raise SystemExit("No inline editor script found")
-          Path("/tmp/cardino-creator.js").write_text("\\n".join(scripts))
+          Path("/tmp/cardino-creator.js").write_text("\n".join(scripts))
           PY
           node --check /tmp/cardino-creator.js
 
