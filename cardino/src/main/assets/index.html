@@ -134,7 +134,7 @@ const themes={
  nowruz:{label:'بهار نو مبارک',colors:['#102e2a','#327b5c','#e4c77d'],defaults:['نوروزتان پیروز','سال نو، آغاز روزهایی روشن و سرشار از سلامتی، آرامش و برکت باشد. بهارتان سبز و دلتان شاد.','با آرزوی بهترین‌ها']},
  congrats:{label:'تبریک صمیمانه',colors:['#202447','#4b5791','#e5bd70'],defaults:['موفقیتت مبارک','این موفقیت ارزشمند، نتیجه تلاش و پشتکار توست. امیدوارم مسیر پیش رو پر از فرصت‌های درخشان باشد.','از صمیم قلب تبریک می‌گویم']}
 };
-let current='wedding',photo=null,audioUrl=null,particles=[],lastTime=0,recording=false;
+let current='wedding',photo=null,audioUrl=null,particles=[],lastTime=0,recording=false,audioContext=null,audioSource=null,audioDestination=null;
 function resetParticles(){
  particles=Array.from({length:42},(_,i)=>({x:Math.random()*450,y:Math.random()*800,r:1+Math.random()*4,v:.15+Math.random()*.6,a:Math.random()*6.28,phase:Math.random()*6.28}));
 }
@@ -236,13 +236,14 @@ async function createVideo(){
  if(recording)return;
  if(!canvas.captureStream||!window.MediaRecorder){toast('این گوشی خروجی ویدئویی را پشتیبانی نمی‌کند؛ تصویر کارت را ذخیره کن');return}
  recording=true;const btn=document.getElementById('videoBtn');btn.disabled=true;btn.textContent='در حال ساخت ویدئو…';
- let stream=null,recorder=null,audioContext=null;
+ let stream=null,recorder=null;
  try{
    stream=canvas.captureStream(24);
    if(audio.src){
      const AC=window.AudioContext||window.webkitAudioContext;
      if(AC){
-       audioContext=new AC();const source=audioContext.createMediaElementSource(audio);const destination=audioContext.createMediaStreamDestination();source.connect(destination);source.connect(audioContext.destination);await audioContext.resume();destination.stream.getAudioTracks().forEach(track=>stream.addTrack(track));
+       if(!audioContext){audioContext=new AC();audioSource=audioContext.createMediaElementSource(audio);audioDestination=audioContext.createMediaStreamDestination();audioSource.connect(audioDestination);audioSource.connect(audioContext.destination)}
+       await audioContext.resume();audioDestination.stream.getAudioTracks().forEach(track=>stream.addTrack(track));
      }
    }
    const types=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
@@ -257,7 +258,7 @@ async function createVideo(){
    if(blob.size<12000)throw new Error('empty recording');
    deliver(blob,'cardino-greeting.webm','video/webm');
  }catch(e){toast('خروجی ویدئو آماده نشد؛ ذخیره تصویر را امتحان کن')}
- finally{if(stream)stream.getTracks().forEach(t=>t.stop());if(audioContext)audioContext.close();recording=false;btn.disabled=false;btn.textContent='✦ ساخت کارت ویدئویی'}
+ finally{if(stream)stream.getTracks().forEach(t=>t.stop());recording=false;btn.disabled=false;btn.textContent='✦ ساخت کارت ویدئویی'}
 }
 document.getElementById('videoBtn').addEventListener('click',createVideo);
 document.getElementById('resetBtn').addEventListener('click',()=>{
