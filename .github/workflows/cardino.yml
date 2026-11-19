@@ -1,0 +1,49 @@
+name: Cardino Android APK
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'cardino/**'
+      - 'settings.gradle.kts'
+      - '.github/workflows/cardino.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Cardino debug APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-36 build-tools;36.0.0 platform-tools'
+
+      - name: Build installable APK
+        run: gradle --no-daemon :cardino:assembleDebug
+
+      - name: Upload Cardino APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Cardino-Android-debug
+          path: cardino/build/outputs/apk/debug/cardino-debug.apk
+          if-no-files-found: error
+          retention-days: 30
