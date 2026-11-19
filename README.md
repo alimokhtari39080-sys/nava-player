@@ -68,6 +68,6 @@ Cardino now creates a **shareable interactive invitation page**, not a flattened
 4. The recipient opens the link in a browser, sees a sealed envelope, and taps the seal.
 5. The flap opens, the invitation rises into view, visual particles animate, and audio playback begins only after that tap.
 
-The viewer is a responsive web page and does not require the recipient to install Cardino. GitHub Actions publishes the viewer to GitHub Pages through `.github/workflows/cardino-pages.yml`. The Android app uses the editor at `cardino/src/main/assets/creator.html`.
+The viewer is a responsive web page and does not require the recipient to install Cardino. GitHub Actions publishes the viewer to GitHub Pages through `.github/workflows/cardino-pages.yml`. **One-time setup is required:** in repository Settings → Pages, set Build and deployment → Source to **GitHub Actions**, then re-run the failed “Publish Cardino interactive cards” workflow. The connected GitHub integration cannot grant itself the repository-level permission to enable Pages automatically. The Android app uses the editor at `cardino/src/main/assets/creator.html`.
 
 This first share-link prototype embeds compressed media in the URL fragment instead of using a private media-storage backend. Keep image/audio clips short so the generated link remains manageable. Browser music playback always begins after a user gesture.
