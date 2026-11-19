@@ -36,3 +36,23 @@ Never commit the keystore or its passwords to the repository. Keep a secure back
 ## Google Play note
 
 The release AAB must be signed with the app's registered upload key before it can be submitted to Play Console. A debug APK or an unsigned AAB is not a Play Store release package.
+
+
+## Cardino — Persian animated greeting cards
+
+A separate Android app module for creating personalized cards for weddings, condolences, birthdays, anniversaries, Nowruz and congratulations.
+
+- Persian RTL editor with live animated preview.
+- Editable recipient, headline, message and sender.
+- Add a personal photo and an audio track from the phone.
+- Export a still image or an animated WebM greeting where supported by the Android WebView.
+- Share the generated file with WhatsApp and other Android sharing targets.
+- The original NAVA Player app remains a separate module and is not replaced.
+
+### Build Cardino
+
+GitHub Actions builds a directly installable debug APK on changes to the `cardino/` module.
+
+Open **Actions → Cardino Android APK → latest successful run → Artifacts → Cardino-Android-debug** and download the APK ZIP. Extract it on the Android phone and install the APK. You may need to allow installation from the browser or file manager used to open it.
+
+The Cardino source is in `cardino/`; its build workflow is `.github/workflows/cardino.yml`.
