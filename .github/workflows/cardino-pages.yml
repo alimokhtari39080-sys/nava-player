@@ -36,6 +36,8 @@ jobs:
         run: |
           mkdir -p site/cardino-web
           cp cardino-web/view.html site/cardino-web/view.html
+          cp cardino-web/cardino-config.js site/cardino-web/cardino-config.js
+          cp cardino-web/404.html site/404.html
           cat > site/index.html <<'EOF'
           <!doctype html>
           <html lang="fa" dir="rtl">
