@@ -56,3 +56,18 @@ GitHub Actions builds a directly installable debug APK on changes to the `cardin
 Open **Actions → Cardino Android APK → latest successful run → Artifacts → Cardino-Android-debug** and download the APK ZIP. Extract it on the Android phone and install the APK. You may need to allow installation from the browser or file manager used to open it.
 
 The Cardino source is in `cardino/`; its build workflow is `.github/workflows/cardino.yml`.
+
+
+### Cardino interactive delivery flow
+
+Cardino now creates a **shareable interactive invitation page**, not a flattened picture or ordinary video:
+
+1. The sender chooses an occasion and edits the recipient, message and event details.
+2. A photo and a short audio excerpt can be embedded in the invitation data.
+3. Cardino creates a unique link to `cardino-web/view.html`.
+4. The recipient opens the link in a browser, sees a sealed envelope, and taps the seal.
+5. The flap opens, the invitation rises into view, visual particles animate, and audio playback begins only after that tap.
+
+The viewer is a responsive web page and does not require the recipient to install Cardino. GitHub Actions publishes the viewer to GitHub Pages through `.github/workflows/cardino-pages.yml`. The Android app uses the editor at `cardino/src/main/assets/creator.html`.
+
+This first share-link prototype embeds compressed media in the URL fragment instead of using a private media-storage backend. Keep image/audio clips short so the generated link remains manageable. Browser music playback always begins after a user gesture.
