@@ -18,6 +18,8 @@ main{max-width:960px;margin:auto;padding:0 14px}.intro{text-align:center;margin:
 .field input,.field textarea{width:100%;color:#fff7eb;border:1px solid #464050;background:#12111a;border-radius:11px;padding:11px 10px;font-size:12px;outline:0;min-width:0}.field textarea{min-height:78px;resize:vertical;line-height:1.8}.field input:focus,.field textarea:focus{border-color:var(--gold)}
 .uploads{display:grid;grid-template-columns:1fr 1fr;gap:9px}.upload{border:1px dashed #62566b;border-radius:13px;background:#15131e;padding:11px;display:flex;gap:9px;align-items:center;min-height:56px}.upload .ico{font-size:21px}.upload b{font-size:10px;display:block}.upload small{display:block;color:var(--muted);font-size:9px;margin-top:4px}.upload input{display:none}
 .filehint{font-size:9px;color:var(--muted);margin-top:8px;line-height:1.8}
+.music-preview{margin-top:10px;padding:10px;border:1px solid #4b4355;border-radius:12px;background:#171520}.music-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}.music-top b{font-size:10px;overflow-wrap:anywhere;color:#f2e4ca}.remove-song{border:1px solid #655366;background:#302638;color:#ead8d7;border-radius:9px;padding:6px 9px;font-size:9px;white-space:nowrap}.music-preview audio{display:block;width:100%;height:38px;accent-color:#d7b56b}
+[hidden]{display:none!important}
 .preview{display:grid;place-items:center;padding:7px 0 4px;min-height:245px}
 .envelope{width:min(83vw,330px);height:185px;position:relative;perspective:1000px;filter:drop-shadow(0 18px 22px #0006);cursor:pointer}
 .back{position:absolute;inset:0;border-radius:9px;background:linear-gradient(135deg,#f2e4c9,#c9a27a)}
@@ -68,7 +70,8 @@ footer{text-align:center;color:#81788a;font-size:9px;margin:23px}
 <label class="upload" for="photo"><span class="ico">🖼️</span><span><b>افزودن عکس</b><small>روی کارت نمایش داده می‌شود</small><input id="photo" type="file" accept="image/*"></span></label>
 <label class="upload" for="song"><span class="ico">🎵</span><span><b>انتخاب موسیقی</b><small>۱۵ ثانیه آغازین موسیقی</small><input id="song" type="file" accept="audio/*"></span></label>
 </div>
-<div class="filehint" id="filehint">موسیقی با لمس مهر توسط گیرنده آغاز می‌شود. فایل موسیقی به کلیپ کوتاه تبدیل می‌شود تا لینک کارت سبک‌تر بماند.</div>
+<div class="music-preview" id="musicPreviewBox" hidden><div class="music-top"><b id="musicFileName">موسیقی انتخاب‌شده</b><button class="remove-song" id="removeSong" type="button">حذف موسیقی</button></div><audio id="musicPreview" controls preload="metadata"></audio></div>
+<div class="filehint" id="filehint">موسیقی با لمس مهر توسط گیرنده آغاز می‌شود. پس از انتخاب، قطعه کوتاه‌شده را همین‌جا گوش کن.</div>
 </section>
 </div>
 <div>
@@ -125,38 +128,55 @@ async function compressPhoto(file){
 }
 async function compressAudio(file){
  const AC=window.AudioContext||window.webkitAudioContext;
- if(!AC||!window.MediaRecorder) {
-  if(file.size>200000){throw new Error("این گوشی فشرده‌سازی موسیقی را پشتیبانی نمی‌کند؛ یک فایل کوتاه‌تر انتخاب کن")}
+ if(!AC||!window.MediaRecorder){
+  if(file.size>220000)throw new Error("این مرورگر فشرده‌سازی موسیقی را پشتیبانی نمی‌کند؛ فایل کوتاه‌تر یا کم‌حجم‌تری انتخاب کن");
   return await readAsDataURL(file);
  }
  const context=new AC();let stream=null;
  try{
   const buffer=await context.decodeAudioData(await file.arrayBuffer());
   const duration=Math.min(15,buffer.duration);
+  if(!duration||!isFinite(duration))throw new Error("مدت موسیقی قابل تشخیص نیست");
   const clip=context.createBuffer(buffer.numberOfChannels,Math.ceil(duration*buffer.sampleRate),buffer.sampleRate);
   for(let ch=0;ch<buffer.numberOfChannels;ch++)clip.copyToChannel(buffer.getChannelData(ch).subarray(0,clip.length),ch);
   const dest=context.createMediaStreamDestination();stream=dest.stream;
-  const mime=["audio/webm;codecs=opus","audio/webm","audio/ogg;codecs=opus"].find(m=>MediaRecorder.isTypeSupported(m))||"";
-  const recorder=new MediaRecorder(stream,{mimeType:mime||undefined,audioBitsPerSecond:48000});
-  const chunks=[];recorder.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
-  const complete=new Promise(resolve=>recorder.onstop=()=>resolve(new Blob(chunks,{type:recorder.mimeType||"audio/webm"})));
-  const source=context.createBufferSource();source.buffer=clip;source.connect(dest);await context.resume();recorder.start();source.start();
-  await new Promise(resolve=>setTimeout(resolve,duration*1000+300));recorder.stop();
+  const candidates=["audio/mp4;codecs=mp4a.40.2","audio/mp4","audio/webm;codecs=opus","audio/webm","audio/ogg;codecs=opus"];
+  const mime=candidates.find(type=>MediaRecorder.isTypeSupported(type))||"";
+  const options={audioBitsPerSecond:56000};if(mime)options.mimeType=mime;
+  const recorder=new MediaRecorder(stream,options);
+  const chunks=[];
+  const complete=new Promise((resolve,reject)=>{
+   recorder.addEventListener("dataavailable",event=>{if(event.data&&event.data.size)chunks.push(event.data)});
+   recorder.addEventListener("error",event=>reject(event.error||new Error("ضبط موسیقی ناموفق بود")),{once:true});
+   recorder.addEventListener("stop",()=>resolve(new Blob(chunks,{type:recorder.mimeType||mime||"audio/webm"})),{once:true});
+  });
+  const source=context.createBufferSource();source.buffer=clip;source.connect(dest);
+  const ended=new Promise(resolve=>{source.onended=resolve});
+  await context.resume();recorder.start(250);source.start();await ended;
+  if(recorder.state!=="inactive")recorder.stop();
   const blob=await complete;
-  if(blob.size>220000)throw new Error("حجم موسیقی هنوز زیاد است؛ لطفاً یک قطعه کوتاه‌تر انتخاب کن");
+  if(!blob.size)throw new Error("فایل موسیقی خالی ایجاد شد");
+  if(blob.size>230000)throw new Error("حجم موسیقی هنوز زیاد است؛ یک فایل کوتاه‌تر انتخاب کن");
   return await readAsDataURL(blob);
- } finally {if(stream)stream.getTracks().forEach(t=>t.stop());await context.close()}
+ } finally {if(stream)stream.getTracks().forEach(track=>track.stop());await context.close()}
 }
 $("photo").addEventListener("change",async e=>{
  const file=e.target.files&&e.target.files[0];if(!file)return;
  try{photoData=await compressPhoto(file);$("filehint").textContent="عکس آماده است؛ پس از بازشدن پاکت داخل کارت نمایش داده می‌شود."}catch(err){alert("خواندن عکس ناموفق بود")}
 });
+function clearMusic(){
+ musicData="";const preview=$("musicPreview");preview.pause();preview.removeAttribute("src");preview.load();$("musicPreviewBox").hidden=true;$("musicFileName").textContent="";
+}
+$("removeSong").addEventListener("click",()=>{if(musicBusy)return;clearMusic();$("song").value="";$("filehint").textContent="موسیقی حذف شد؛ می‌توانی آهنگ دیگری انتخاب کنی."});
 $("song").addEventListener("change",async e=>{
- const file=e.target.files&&e.target.files[0];if(!file)return;if(musicBusy)return;musicBusy=true;$("createBtn").disabled=true;
- $("filehint").textContent="در حال آماده‌سازی موسیقی کوتاه برای کارت...";
- try{musicData=await compressAudio(file);$("filehint").textContent="موسیقی آماده است؛ پس از لمس مهر و بازشدن کارت پخش می‌شود."}
- catch(err){musicData="";alert(err.message||"آماده‌سازی موسیقی ناموفق بود")}
- finally{musicBusy=false;$("createBtn").disabled=false}
+ const file=e.target.files&&e.target.files[0];if(!file)return;if(musicBusy)return;clearMusic();musicBusy=true;$("createBtn").disabled=true;$("removeSong").disabled=true;
+ $("filehint").textContent="در حال آماده‌سازی ۱۵ ثانیه اول موسیقی...";
+ try{
+  musicData=await compressAudio(file);$("musicFileName").textContent=file.name||"موسیقی انتخاب‌شده";
+  $("musicPreview").src=musicData;$("musicPreview").load();$("musicPreviewBox").hidden=false;
+  $("filehint").textContent="موسیقی آماده است. می‌توانی پیش‌نمایش را گوش کنی؛ گیرنده پس از لمس مهر آن را می‌شنود."
+ }catch(err){musicData="";clearMusic();$("song").value="";alert(err.message||"آماده‌سازی موسیقی ناموفق بود")}
+ finally{musicBusy=false;$("createBtn").disabled=false;$("removeSong").disabled=false}
 });
 function encode(obj){
  const bytes=new TextEncoder().encode(JSON.stringify(obj));let binary="";for(let i=0;i<bytes.length;i+=0x8000)binary+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));
