@@ -68,7 +68,7 @@ footer{text-align:center;color:#81788a;font-size:9px;margin:23px}
 <h2 class="stitle"><span class="num">۳</span> عکس و موسیقی</h2>
 <div class="uploads">
 <label class="upload" for="photo"><span class="ico">🖼️</span><span><b>افزودن عکس</b><small>روی کارت نمایش داده می‌شود</small><input id="photo" type="file" accept="image/*"></span></label>
-<label class="upload" for="song"><span class="ico">🎵</span><span><b>انتخاب موسیقی</b><small>۱۵ ثانیه آغازین موسیقی</small><input id="song" type="file" accept="audio/*"></span></label>
+<label class="upload" for="song"><span class="ico">🎵</span><span><b>انتخاب موسیقی</b><small>کل آهنگ؛ تا ۲۰ مگابایت</small><input id="song" type="file" accept="audio/*"></span></label>
 </div>
 <div class="music-preview" id="musicPreviewBox" hidden><div class="music-top"><b id="musicFileName">موسیقی انتخاب‌شده</b><button class="remove-song" id="removeSong" type="button">حذف موسیقی</button></div><audio id="musicPreview" controls preload="metadata"></audio></div>
 <div class="filehint" id="filehint">موسیقی با لمس مهر توسط گیرنده آغاز می‌شود. پس از انتخاب، قطعه کوتاه‌شده را همین‌جا گوش کن.</div>
@@ -100,9 +100,11 @@ footer{text-align:center;color:#81788a;font-size:9px;margin:23px}
 </div>
 </main>
 <footer>ساخته‌شده با عشق • CARDINO</footer>
+<script src="cardino-config.js"></script>
 <script>
 (function(){
-const BASE="https://alimokhtari39080-sys.github.io/nava-player/cardino-web/view.html#d=";
+const BASE="https://alimokhtari39080-sys.github.io/nava-player/cardino-web/view.html";
+const CONFIG=window.CARDINO_CONFIG||{};
 const themes={
  wedding:{label:"YOU ARE INVITED",headline:"به جشن عشق ما دعوتید",message:"با شادی فراوان، از شما دعوت می‌کنیم در این روز به‌یادماندنی کنار ما باشید. حضورتان مایه دلگرمی و شادی ماست.",sender:"با مهر و احترام"},
  birthday:{label:"HAPPY BIRTHDAY",headline:"تولدت مبارک!",message:"امیدوارم سال تازه زندگی‌ات پر از لبخند، سلامتی و اتفاق‌های قشنگ باشد. همیشه بدرخشی!",sender:"با بهترین آرزوها"},
@@ -111,7 +113,7 @@ const themes={
  nowruz:{label:"HAPPY NOWRUZ",headline:"نوروزتان پیروز",message:"سال نو، آغاز روزهایی روشن و سرشار از سلامتی، آرامش و برکت باشد. بهارتان سبز و دلتان شاد.",sender:"با آرزوی بهترین‌ها"},
  congrats:{label:"CONGRATULATIONS",headline:"تبریک صمیمانه",message:"این موفقیت ارزشمند، نتیجه تلاش و پشتکار توست. امیدوارم مسیر پیش رو پر از فرصت‌های درخشان باشد.",sender:"از صمیم قلب تبریک می‌گویم"}
 };
-let theme="wedding",photoData="",musicData="",musicBusy=false,lastLink="";
+let theme="wedding",photoData="",musicFile=null,musicObjectUrl="",musicBusy=false,lastLink="";
 const $=id=>document.getElementById(id);
 function updateDemo(){ $("demoHeadline").textContent=$("headline").value||"کارتینو";$("demoRecipient").textContent=$("recipient").value||"با مهر"; }
 ["recipient","headline"].forEach(id=>$(id).addEventListener("input",updateDemo));
@@ -126,82 +128,113 @@ async function compressPhoto(file){
  const c=document.createElement("canvas");c.width=w;c.height=h;c.getContext("2d").drawImage(source,0,0,w,h);source.close();
  return c.toDataURL("image/jpeg",.68);
 }
-async function compressAudio(file){
- const AC=window.AudioContext||window.webkitAudioContext;
- if(!AC||!window.MediaRecorder){
-  if(file.size>220000)throw new Error("این مرورگر فشرده‌سازی موسیقی را پشتیبانی نمی‌کند؛ فایل کوتاه‌تر یا کم‌حجم‌تری انتخاب کن");
-  return await readAsDataURL(file);
- }
- const context=new AC();let stream=null;
- try{
-  const buffer=await context.decodeAudioData(await file.arrayBuffer());
-  const duration=Math.min(15,buffer.duration);
-  if(!duration||!isFinite(duration))throw new Error("مدت موسیقی قابل تشخیص نیست");
-  const clip=context.createBuffer(buffer.numberOfChannels,Math.ceil(duration*buffer.sampleRate),buffer.sampleRate);
-  for(let ch=0;ch<buffer.numberOfChannels;ch++)clip.copyToChannel(buffer.getChannelData(ch).subarray(0,clip.length),ch);
-  const dest=context.createMediaStreamDestination();stream=dest.stream;
-  const candidates=["audio/mp4;codecs=mp4a.40.2","audio/mp4","audio/webm;codecs=opus","audio/webm","audio/ogg;codecs=opus"];
-  const mime=candidates.find(type=>MediaRecorder.isTypeSupported(type))||"";
-  const options={audioBitsPerSecond:56000};if(mime)options.mimeType=mime;
-  const recorder=new MediaRecorder(stream,options);
-  const chunks=[];
-  const complete=new Promise((resolve,reject)=>{
-   recorder.addEventListener("dataavailable",event=>{if(event.data&&event.data.size)chunks.push(event.data)});
-   recorder.addEventListener("error",event=>reject(event.error||new Error("ضبط موسیقی ناموفق بود")),{once:true});
-   recorder.addEventListener("stop",()=>resolve(new Blob(chunks,{type:recorder.mimeType||mime||"audio/webm"})),{once:true});
-  });
-  const source=context.createBufferSource();source.buffer=clip;source.connect(dest);
-  const ended=new Promise(resolve=>{source.onended=resolve});
-  await context.resume();recorder.start(250);source.start();await ended;
-  if(recorder.state!=="inactive")recorder.stop();
-  const blob=await complete;
-  if(!blob.size)throw new Error("فایل موسیقی خالی ایجاد شد");
-  if(blob.size>230000)throw new Error("حجم موسیقی هنوز زیاد است؛ یک فایل کوتاه‌تر انتخاب کن");
-  return await readAsDataURL(blob);
- } finally {if(stream)stream.getTracks().forEach(track=>track.stop());await context.close()}
-}
 $("photo").addEventListener("change",async e=>{
  const file=e.target.files&&e.target.files[0];if(!file)return;
  try{photoData=await compressPhoto(file);$("filehint").textContent="عکس آماده است؛ پس از بازشدن پاکت داخل کارت نمایش داده می‌شود."}catch(err){alert("خواندن عکس ناموفق بود")}
 });
 function clearMusic(){
- musicData="";const preview=$("musicPreview");preview.pause();preview.removeAttribute("src");preview.load();$("musicPreviewBox").hidden=true;$("musicFileName").textContent="";
+ musicFile=null;
+ const preview=$("musicPreview");preview.pause();preview.removeAttribute("src");preview.load();
+ if(musicObjectUrl){URL.revokeObjectURL(musicObjectUrl);musicObjectUrl=""}
+ $("musicPreviewBox").hidden=true;$("musicFileName").textContent="";
 }
-$("removeSong").addEventListener("click",()=>{if(musicBusy)return;clearMusic();$("song").value="";$("filehint").textContent="موسیقی حذف شد؛ می‌توانی آهنگ دیگری انتخاب کنی."});
-$("song").addEventListener("change",async e=>{
- const file=e.target.files&&e.target.files[0];if(!file)return;if(musicBusy)return;clearMusic();musicBusy=true;$("createBtn").disabled=true;$("removeSong").disabled=true;
- $("filehint").textContent="در حال آماده‌سازی ۱۵ ثانیه اول موسیقی...";
- try{
-  musicData=await compressAudio(file);$("musicFileName").textContent=file.name||"موسیقی انتخاب‌شده";
-  $("musicPreview").src=musicData;$("musicPreview").load();$("musicPreviewBox").hidden=false;
-  $("filehint").textContent="موسیقی آماده است. می‌توانی پیش‌نمایش را گوش کنی؛ گیرنده پس از لمس مهر آن را می‌شنود."
- }catch(err){musicData="";clearMusic();$("song").value="";alert(err.message||"آماده‌سازی موسیقی ناموفق بود")}
- finally{musicBusy=false;$("createBtn").disabled=false;$("removeSong").disabled=false}
+$("removeSong").addEventListener("click",()=>{clearMusic();$("song").value="";$("filehint").textContent="موسیقی حذف شد؛ می‌توانی آهنگ دیگری انتخاب کنی."});
+$("song").addEventListener("change",e=>{
+ const file=e.target.files&&e.target.files[0];if(!file)return;
+ if(!file.type.startsWith("audio/")){alert("لطفاً یک فایل صوتی انتخاب کن");e.target.value="";return}
+ if(file.size>20*1024*1024){alert("حجم آهنگ نباید بیشتر از ۲۰ مگابایت باشد");e.target.value="";return}
+ clearMusic();musicFile=file;musicObjectUrl=URL.createObjectURL(file);
+ $("musicFileName").textContent=file.name+" • "+(file.size/1024/1024).toFixed(1)+" MB";
+ $("musicPreview").src=musicObjectUrl;$("musicPreview").load();$("musicPreviewBox").hidden=false;
+ $("filehint").textContent="کل آهنگ انتخاب شده؛ هنگام ساخت کارت روی فضای ابری بارگذاری می‌شود و گیرنده کل آن را می‌شنود.";
 });
-function encode(obj){
- const bytes=new TextEncoder().encode(JSON.stringify(obj));let binary="";for(let i=0;i<bytes.length;i+=0x8000)binary+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));
- return btoa(binary).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
-}
 function setStatus(html){$("status").innerHTML=html;$("status").style.display="block"}
-$("createBtn").addEventListener("click",()=>{
- if(musicBusy){alert("آماده‌سازی موسیقی هنوز تمام نشده است");return}
- const data={v:1,theme:theme,recipient:$("recipient").value.trim(),headline:$("headline").value.trim()||themes[theme].headline,message:$("message").value.trim(),sender:$("sender").value.trim(),date:$("date").value.trim(),place:$("place").value.trim(),photo:photoData,music:musicData};
+function backendReady(){
+ return /^https:\/\//.test(CONFIG.supabaseUrl||"") &&
+        typeof CONFIG.supabaseAnonKey==="string" && CONFIG.supabaseAnonKey.length>20;
+}
+function randomCode(){
+ const alphabet="0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+ const bytes=new Uint8Array(10);let code="";
+ crypto.getRandomValues(bytes);
+ for(const byte of bytes)code+=alphabet[byte%alphabet.length];
+ return code;
+}
+function dataUrlToBlob(dataUrl){
+ const parts=dataUrl.split(",");const mime=(parts[0].match(/:(.*?);/)||[])[1]||"image/jpeg";
+ const raw=atob(parts[1]);const bytes=new Uint8Array(raw.length);
+ for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+ return new Blob([bytes],{type:mime});
+}
+function musicMime(file){
+ if(file.type)return file.type;
+ const ext=(file.name.split(".").pop()||"").toLowerCase();
+ return ({mp3:"audio/mpeg",m4a:"audio/mp4",mp4:"audio/mp4",aac:"audio/aac",wav:"audio/wav",ogg:"audio/ogg",oga:"audio/ogg",webm:"audio/webm",flac:"audio/flac"})[ext]||"application/octet-stream";
+}
+function musicExt(file){
+ const ext=(file.name.split(".").pop()||"").toLowerCase();
+ return ["mp3","m4a","mp4","aac","wav","ogg","oga","webm","flac"].includes(ext)?ext:
+  ({"audio/mpeg":"mp3","audio/mp4":"m4a","audio/aac":"aac","audio/wav":"wav","audio/x-wav":"wav","audio/ogg":"ogg","audio/webm":"webm","audio/flac":"flac"}[file.type]||"mp3");
+}
+async function uploadObject(code,name,blob,type){
+ const url=CONFIG.supabaseUrl.replace(/\/$/,""),bucket=CONFIG.bucket||"cardino-media";
+ const objectPath="cards/"+code+"/"+name;
+ const response=await fetch(url+"/storage/v1/object/"+bucket+"/"+objectPath.split("/").map(encodeURIComponent).join("/"),{
+  method:"POST",
+  headers:{"apikey":CONFIG.supabaseAnonKey,"Authorization":"Bearer "+CONFIG.supabaseAnonKey,"Content-Type":type,"x-upsert":"false"},
+  body:blob
+ });
+ if(!response.ok){const detail=await response.text();throw new Error("آپلود فایل ناموفق بود ("+response.status+"): "+detail.slice(0,180))}
+ return url+"/storage/v1/object/public/"+bucket+"/"+objectPath.split("/").map(encodeURIComponent).join("/");
+}
+async function saveCard(payload){
+ const url=CONFIG.supabaseUrl.replace(/\/$/,"");
+ for(let attempt=0;attempt<3;attempt++){
+  const code=randomCode();
+  const row={code:code,payload:payload};
+  const response=await fetch(url+"/rest/v1/cardino_cards",{
+   method:"POST",
+   headers:{"apikey":CONFIG.supabaseAnonKey,"Authorization":"Bearer "+CONFIG.supabaseAnonKey,"Content-Type":"application/json","Prefer":"return=minimal"},
+   body:JSON.stringify(row)
+  });
+  if(response.ok)return code;
+  const detail=await response.text();
+  if(response.status!==409)throw new Error("ذخیره کارت ناموفق بود ("+response.status+"): "+detail.slice(0,180));
+ }
+ throw new Error("ساخت شناسه کوتاه ناموفق بود؛ دوباره تلاش کن");
+}
+async function createCard(){
+ if(musicBusy)return;
+ if(!backendReady()){
+  setStatus("برای ساخت لینک کوتاه باید فضای ذخیره‌سازی کارتینو یک‌بار متصل شود. فایل راه‌اندازی در پوشه cardino-backend مخزن قرار دارد.");
+  return;
+ }
+ const data={v:2,theme:theme,recipient:$("recipient").value.trim(),headline:$("headline").value.trim()||themes[theme].headline,message:$("message").value.trim(),sender:$("sender").value.trim(),date:$("date").value.trim(),place:$("place").value.trim(),photo:"",music:"",musicName:musicFile?musicFile.name:""};
  if(!data.message){alert("متن کارت را وارد کن");return}
- const payload=encode(data);lastLink=BASE+payload;
- if(lastLink.length>1450000){lastLink="";$("shareBtn").disabled=$("copyBtn").disabled=true;alert("اطلاعات رسانه‌ای کارت بیش از اندازه بزرگ است. عکس کوچک‌تر یا موسیقی کوتاه‌تری انتخاب کن.");return}
- $("shareBtn").disabled=$("copyBtn").disabled=false;
- setStatus("لینک اختصاصی کارت ساخته شد. این لینک را برای مخاطب بفرست؛ او پاکت را باز می‌کند و کارت را می‌بیند.<br><a href='"+lastLink+"' target='_blank' rel='noopener'>پیش‌نمایش کارت گیرنده</a>");
- $("status").scrollIntoView({behavior:"smooth",block:"nearest"});
-});
+ $("createBtn").disabled=true;$("shareBtn").disabled=$("copyBtn").disabled=true;
+ setStatus("در حال آماده‌سازی کارت و بارگذاری عکس و موسیقی...");
+ try{
+  const code=randomCode();
+  if(photoData)data.photo=await uploadObject(code,"photo.jpg",dataUrlToBlob(photoData),"image/jpeg");
+  if(musicFile)data.music=await uploadObject(code,"music."+musicExt(musicFile),musicFile,musicMime(musicFile));
+  const savedCode=await saveCard(data);
+  lastLink=BASE+"?c="+savedCode;
+  $("shareBtn").disabled=$("copyBtn").disabled=false;
+  setStatus("کارت با موفقیت ذخیره شد. لینک کوتاه آماده ارسال است:<br><a href='"+lastLink+"' target='_blank' rel='noopener'>"+lastLink+"</a><br>حجم موسیقی: "+(musicFile?(musicFile.size/1024/1024).toFixed(1)+" مگابایت":"بدون موسیقی"));
+ }catch(error){
+  lastLink="";setStatus("ساخت کارت کامل نشد: "+String(error.message||error).replace(/[<>&]/g," "));
+ }finally{$("createBtn").disabled=false}
+}
+$("createBtn").addEventListener("click",createCard);
 $("shareBtn").addEventListener("click",()=>{
  if(!lastLink)return;
- if(window.CardinoNative&&window.CardinoNative.shareText){window.CardinoNative.shareText("یک کارت ویژه برای تو 💌\n"+lastLink)}
- else if(navigator.share){navigator.share({title:"کارت ویژه کارتینو",text:"یک کارت برای تو 💌",url:lastLink}).catch(()=>{})}
+ if(window.CardinoNative&&window.CardinoNative.shareText){window.CardinoNative.shareText("یک دعوت‌نامه ویژه برای تو 💌\n"+lastLink)}
+ else if(navigator.share){navigator.share({title:"کارت ویژه کارتینو",text:"یک دعوت‌نامه ویژه برای تو 💌",url:lastLink}).catch(()=>{})}
  else{copyLink()}
 });
 async function copyLink(){
- try{await navigator.clipboard.writeText(lastLink);setStatus("لینک کارت کپی شد؛ می‌توانی آن را در واتساپ یا پیام‌رسان بفرستی.")}
- catch(e){const el=document.createElement("textarea");el.value=lastLink;document.body.appendChild(el);el.select();try{document.execCommand("copy");setStatus("لینک کارت کپی شد.")}catch(err){setStatus("لینک را از این قسمت کپی کن:<br>"+lastLink)}el.remove()}
+ try{await navigator.clipboard.writeText(lastLink);setStatus("لینک کوتاه کپی شد؛ می‌توانی آن را با پیامک یا واتساپ بفرستی.")}
+ catch(e){const el=document.createElement("textarea");el.value=lastLink;document.body.appendChild(el);el.select();try{document.execCommand("copy");setStatus("لینک کپی شد.")}catch(err){setStatus("لینک را کپی کن:<br>"+lastLink)}el.remove()}
 }
 $("copyBtn").addEventListener("click",copyLink);
 updateDemo();
