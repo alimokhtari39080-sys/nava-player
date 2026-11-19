@@ -59,10 +59,10 @@ jobs:
               ("cardino-web/404.html", "/tmp/cardino-short-link.js"),
           ]:
               html = Path(source).read_text()
-              scripts = re.findall(r'<script(?![^>]*\\bsrc=)[^>]*>(.*?)</script\\s*>', html, re.I | re.S)
+              scripts = re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script\s*>', html, re.I | re.S)
               if not scripts:
                   raise SystemExit(f"No inline script found in {source}")
-              Path(target).write_text("\\n".join(scripts))
+              Path(target).write_text("\n".join(scripts))
           PY
           node --check /tmp/cardino-viewer.js
           node --check /tmp/cardino-short-link.js
