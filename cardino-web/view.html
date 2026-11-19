@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#171321">
+<title>یک کارت برای تو | کارتینو</title>
+<style>
+:root{--bg:#171321;--paper:#f8f0df;--ink:#3b2b32;--gold:#d8b56c;--rose:#ad647a;--accent:#bd8b55}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:Tahoma,"Noto Naskh Arabic",sans-serif}
+body{min-height:100vh;background:radial-gradient(ellipse at 50% 15%,#4c3a50 0,#211b2d 45%,#12101a 100%);color:#fff7eb;overflow-x:hidden}
+main{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:calc(28px + env(safe-area-inset-top)) 18px 32px}
+.brand{letter-spacing:.2em;font-size:11px;color:#d8c5a5;margin:2px 0 22px}
+.kicker{font-size:11px;color:#d9c69f;letter-spacing:.04em;margin:0 0 11px}
+h1{font-size:20px;line-height:1.8;text-align:center;font-weight:500;margin:0 0 26px}
+.scene{width:min(92vw,390px);height:390px;display:grid;place-items:center;perspective:1200px;position:relative}
+.glow{position:absolute;width:90%;height:70%;border-radius:50%;background:var(--accent);filter:blur(75px);opacity:.15;pointer-events:none}
+.envelope{width:min(88vw,340px);height:222px;position:relative;transform-style:preserve-3d;filter:drop-shadow(0 25px 28px #08070d99);transition:transform .7s}
+.envelope-back{position:absolute;inset:0;border-radius:12px;background:linear-gradient(145deg,#f2e5cb,#c7a77d);overflow:hidden}
+.liner{position:absolute;inset:0;background:linear-gradient(135deg,#e8d9bc,#9d7480);clip-path:polygon(0 0,100% 0,50% 55%);opacity:.8}
+.envelope-left,.envelope-right{position:absolute;inset:0;border-radius:12px;background:linear-gradient(125deg,#e5d0ad,#c7a27a);clip-path:polygon(0 0,50% 57%,0 100%);z-index:3}
+.envelope-right{background:linear-gradient(230deg,#e7d8be,#b98f73);clip-path:polygon(100% 0,50% 57%,100% 100%)}
+.envelope-bottom{position:absolute;inset:0;background:linear-gradient(180deg,#f0e0c2,#caa37c);clip-path:polygon(0 100%,50% 43%,100% 100%);z-index:4}
+.envelope-flap{position:absolute;left:0;right:0;top:0;height:64%;background:linear-gradient(150deg,#eddfc5,#bd966d);clip-path:polygon(0 0,100% 0,50% 100%);transform-origin:50% 0;transform:rotateX(0);transition:transform 1s cubic-bezier(.2,.8,.2,1);z-index:6;backface-visibility:visible}
+.seal{position:absolute;z-index:8;left:50%;top:55%;transform:translate(-50%,-50%);width:61px;height:61px;border-radius:50%;border:2px solid #e6c47f;background:radial-gradient(circle at 35% 25%,#c58b6b,#793a4c 75%);box-shadow:0 4px 11px #63374888,inset 0 0 0 3px #8e5360;color:#f9deb0;font-size:27px;display:grid;place-items:center;cursor:pointer;transition:opacity .5s,transform .5s;touch-action:manipulation}
+.seal:after{content:"";position:absolute;inset:7px;border:1px solid #e8c58c;border-radius:50%;opacity:.7}
+.card-in-envelope{position:absolute;left:7%;right:7%;top:7%;height:86%;z-index:2;background:var(--paper);color:var(--ink);border-radius:5px;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:22px;box-shadow:0 5px 15px #0003;transition:transform 1.15s cubic-bezier(.16,.85,.2,1),z-index 0s .2s}
+.card-in-envelope .mini-title{font-family:Georgia,serif;color:var(--rose);font-size:11px;letter-spacing:.2em;margin-bottom:14px}
+.card-in-envelope strong{font-family:Georgia,serif;font-size:27px;font-weight:500;line-height:1.4}
+.card-in-envelope .mini-line{width:54px;height:1px;background:var(--gold);margin:13px auto}
+.envelope.opened .envelope-flap{transform:rotateX(180deg);z-index:1}
+.envelope.opened .seal{opacity:0;transform:translate(-50%,-50%) scale(.3);pointer-events:none}
+.envelope.opened .card-in-envelope{transform:translateY(-150px) scale(1.02);z-index:9}
+.instruction{font-size:12px;color:#e6d6bd;margin:5px 0 0;text-align:center;line-height:2}
+.instruction b{color:#f0d59b;font-weight:600}
+.full-card{width:min(92vw,440px);margin:-5px auto 0;opacity:0;transform:translateY(25px) scale(.96);pointer-events:none;transition:opacity .7s .35s,transform .8s .35s}
+.full-card.visible{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
+.card-paper{position:relative;overflow:hidden;background:linear-gradient(145deg,#fff9ed,#efe0c7);color:#382d36;border-radius:5px;padding:31px 23px 27px;min-height:450px;box-shadow:0 22px 60px #0006;border:1px solid #d7bd91;text-align:center}
+.card-paper:before{content:"";position:absolute;inset:9px;border:1px solid #d2b781;pointer-events:none}
+.card-top{font-family:Georgia,serif;color:var(--rose);font-size:11px;letter-spacing:.23em;margin:0 0 18px}
+.photo{display:none;width:100%;max-height:220px;object-fit:cover;border-radius:3px;margin:0 auto 22px}
+.card-title{font-family:Georgia,serif;font-size:clamp(26px,7vw,36px);font-weight:500;line-height:1.45;margin:10px 0 6px;color:#523842;white-space:pre-line}
+.names{font-family:Georgia,serif;font-size:22px;line-height:1.7;color:#936074;margin:4px 0 15px}
+.ornament{color:#bd9657;font-size:22px;margin:12px auto}
+.message{font-family:Tahoma,sans-serif;font-size:14px;line-height:2.2;white-space:pre-line;margin:12px auto;max-width:340px;color:#51464a}
+.details{display:grid;gap:8px;margin:20px auto 0;padding-top:16px;border-top:1px solid #ddcba9;text-align:right;max-width:320px}
+.detail{font-size:12px;line-height:1.8;color:#51424a;display:flex;gap:9px}
+.detail b{color:#916d4c;min-width:65px}
+.from{margin:22px 0 0;color:#8c6270;font-family:Georgia,serif;font-size:16px}
+.controls{display:flex;justify-content:center;gap:9px;margin-top:16px;flex-wrap:wrap}
+.control{border:1px solid #9a815b;background:#211b2c;color:#f4e9d6;border-radius:30px;padding:10px 15px;font-size:11px}
+.control:disabled{opacity:.4}
+.footer{font-size:10px;color:#9e91a4;margin:24px 0 0;text-align:center}
+.petal{position:fixed;top:-20px;left:var(--x);font-size:var(--s);opacity:0;pointer-events:none;z-index:20;animation:fall var(--d) linear forwards;animation-delay:var(--delay)}
+@keyframes fall{0%{transform:translate3d(0,-10px,0) rotate(0);opacity:0}10%{opacity:.75}100%{transform:translate3d(var(--drift),110vh,0) rotate(650deg);opacity:0}}
+@media(min-width:600px){.scene{height:420px}.envelope{width:340px}.card-paper{padding:38px 36px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<main>
+<div class="brand">CARDINO</div>
+<p class="kicker">یک پیام ویژه برای شما</p>
+<h1 id="introTitle">برای باز کردن این نامه، مهر را لمس کنید</h1>
+<div class="scene" id="scene">
+<div class="glow"></div>
+<div class="envelope" id="envelope">
+<div class="envelope-back"></div>
+<div class="liner"></div>
+<div class="card-in-envelope">
+<div class="mini-title" id="miniKicker">YOU ARE INVITED</div>
+<strong id="miniHeadline">یک روز به‌یادماندنی</strong>
+<div class="mini-line"></div>
+<span id="miniNames" style="font-family:Georgia,serif;font-size:15px;color:#986b77">با مهر</span>
+</div>
+<div class="envelope-left"></div><div class="envelope-right"></div><div class="envelope-bottom"></div>
+<div class="envelope-flap"></div>
+<button class="seal" id="openBtn" aria-label="باز کردن پاکت">✦</button>
+</div>
+</div>
+<p class="instruction" id="instruction">برای دیدن پیام، <b>مهر را لمس کن</b></p>
+<section class="full-card" id="fullCard">
+<div class="card-paper">
+<div class="card-top" id="cardKicker">A SPECIAL MESSAGE</div>
+<img class="photo" id="heroPhoto" alt="تصویر کارت">
+<div class="ornament">✧</div>
+<h2 class="card-title" id="cardTitle"></h2>
+<div class="names" id="cardNames"></div>
+<div class="ornament">❦</div>
+<p class="message" id="cardMessage"></p>
+<div class="details" id="details" hidden>
+<div class="detail" id="dateDetail"><b>تاریخ</b><span></span></div>
+<div class="detail" id="placeDetail"><b>مکان</b><span></span></div>
+</div>
+<div class="from" id="cardFrom"></div>
+<div class="ornament">✦</div>
+</div>
+<div class="controls">
+<button class="control" id="musicBtn" hidden>▶ پخش موسیقی</button>
+<button class="control" id="shareBtn">↗ اشتراک‌گذاری کارت</button>
+<button class="control" id="mapBtn" hidden>⌖ مسیریابی</button>
+</div>
+</section>
+<div class="footer">این کارت با عشق در کارتینو ساخته شده است</div>
+<audio id="music" loop preload="none"></audio>
+</main>
+<script>
+(function(){
+const defaults={theme:"wedding",recipient:"",headline:"یک روز به‌یادماندنی",message:"امیدواریم در این لحظه زیبا کنار ما باشید.",sender:"با مهر",date:"",place:"",photo:"",music:"",musicName:""};
+const themes={
+ wedding:{kicker:"YOU ARE INVITED",label:"دعوت‌نامه"},
+ birthday:{kicker:"HAPPY BIRTHDAY",label:"تبریک تولد"},
+ condolence:{kicker:"WITH DEEPEST SYMPATHY",label:"با همدردی"},
+ love:{kicker:"WITH LOVE",label:"پیامی از دل"},
+ nowruz:{kicker:"HAPPY NOWRUZ",label:"نوروز مبارک"},
+ congrats:{kicker:"CONGRATULATIONS",label:"تبریک ویژه"},
+ general:{kicker:"A SPECIAL MESSAGE",label:"یک پیام ویژه"}
+};
+function decodePayload(){
+ try{
+  const params=new URLSearchParams(location.hash.slice(1));
+  const raw=params.get("d");if(!raw)return defaults;
+  const binary=atob(raw.replace(/-/g,"+").replace(/_/g,"/"));
+  const bytes=Uint8Array.from(binary,c=>c.charCodeAt(0));
+  return Object.assign({},defaults,JSON.parse(new TextDecoder().decode(bytes)));
+ }catch(e){return defaults}
+}
+const data=decodePayload();const theme=themes[data.theme]||themes.general;
+document.documentElement.style.setProperty("--accent",data.theme==="condolence"?"#9aa9ba":data.theme==="birthday"?"#d982a9":data.theme==="love"?"#d77f98":data.theme==="nowruz"?"#80ab79":data.theme==="congrats"?"#d9b56f":"#d8b56c");
+document.getElementById("introTitle").textContent=data.recipient?"یک نامه برای "+data.recipient:"برای باز کردن این نامه، مهر را لمس کنید";
+document.getElementById("miniKicker").textContent=theme.kicker;
+document.getElementById("miniHeadline").textContent=data.headline;
+document.getElementById("miniNames").textContent=data.recipient||data.sender;
+document.getElementById("cardKicker").textContent=theme.kicker;
+document.getElementById("cardTitle").textContent=data.headline;
+document.getElementById("cardNames").textContent=data.recipient;
+document.getElementById("cardMessage").textContent=data.message;
+document.getElementById("cardFrom").textContent=data.sender;
+if(data.photo){const img=document.getElementById("heroPhoto");img.src=data.photo;img.style.display="block"}
+if(data.date||data.place){
+ const details=document.getElementById("details");details.hidden=false;
+ if(data.date){document.querySelector("#dateDetail span").textContent=data.date}
+ else{document.getElementById("dateDetail").hidden=true}
+ if(data.place){document.querySelector("#placeDetail span").textContent=data.place}
+ else{document.getElementById("placeDetail").hidden=true}
+}
+const audio=document.getElementById("music"),musicBtn=document.getElementById("musicBtn");
+if(data.music){audio.src=data.music;musicBtn.hidden=false}
+const mapBtn=document.getElementById("mapBtn");
+if(data.place&&/https?:\/\//i.test(data.place)){mapBtn.hidden=false;mapBtn.addEventListener("click",()=>window.open(data.place,"_blank","noopener"))}
+function petals(){
+ const symbols=data.theme==="condolence"?["✦","❀","✧"]:data.theme==="birthday"?["✦","✧","🎉"]:["✿","❀","✧","✦"];
+ for(let i=0;i<24;i++){
+  const el=document.createElement("span");el.className="petal";el.textContent=symbols[i%symbols.length];el.style.setProperty("--x",Math.random()*100+"vw");el.style.setProperty("--s",(12+Math.random()*16)+"px");el.style.setProperty("--d",(4+Math.random()*4)+"s");el.style.setProperty("--delay",(Math.random()*.8)+"s");el.style.setProperty("--drift",(-90+Math.random()*180)+"px");document.body.appendChild(el);setTimeout(()=>el.remove(),9000)
+ }
+}
+let opened=false;
+document.getElementById("openBtn").addEventListener("click",async()=>{
+ if(opened)return;opened=true;
+ document.getElementById("envelope").classList.add("opened");
+ document.getElementById("instruction").textContent="نامه شما با مهر و محبت باز شد";
+ document.getElementById("fullCard").classList.add("visible");
+ document.getElementById("scene").style.marginBottom="36px";
+ petals();
+ if(data.music){try{await audio.play();musicBtn.textContent="Ⅱ توقف موسیقی"}catch(e){musicBtn.textContent="▶ پخش موسیقی"}}
+});
+musicBtn.addEventListener("click",async()=>{
+ try{if(audio.paused){await audio.play();musicBtn.textContent="Ⅱ توقف موسیقی"}else{audio.pause();musicBtn.textContent="▶ پخش موسیقی"}}catch(e){}
+});
+document.getElementById("shareBtn").addEventListener("click",async()=>{
+ try{if(navigator.share){await navigator.share({title:"یک کارت از کارتینو",text:"یک پیام ویژه برای تو",url:location.href})}
+ else if(navigator.clipboard){await navigator.clipboard.writeText(location.href);alert("لینک کارت کپی شد")}
+ else{prompt("لینک کارت را کپی کنید",location.href)}}catch(e){}
+});
+})();
+</script>
+</body>
+</html>
