@@ -128,15 +128,18 @@ async function decodePayload(){
  if(code){
   if(!/^[A-Za-z0-9]{10}$/.test(code))throw new Error("شناسه کارت معتبر نیست");
   const config=window.CARDINO_CONFIG||{};
-  if(!config.supabaseUrl||!config.supabaseAnonKey)throw new Error("فضای ذخیره‌سازی کارتینو هنوز پیکربندی نشده است");
+  const apiKey=config.supabaseApiKey||config.supabaseAnonKey;
+  if(!config.supabaseUrl||!apiKey)throw new Error("فضای ذخیره‌سازی کارتینو هنوز پیکربندی نشده است");
   const base=config.supabaseUrl.replace(/\/$/,"");
-  const response=await fetch(base+"/rest/v1/cardino_cards?code=eq."+encodeURIComponent(code)+"&select=payload",{
-   headers:apiHeaders(config.supabaseAnonKey)
+  const response=await fetch(base+"/rest/v1/rpc/get_cardino_card",{
+   method:"POST",
+   headers:Object.assign({"Content-Type":"application/json"},apiHeaders(apiKey)),
+   body:JSON.stringify({p_code:code})
   });
   if(!response.ok)throw new Error("دریافت کارت از فضای ابری ناموفق بود ("+response.status+")");
-  const rows=await response.json();
-  if(!rows.length)throw new Error("این کارت پیدا نشد یا لینک آن اشتباه است");
-  return Object.assign({},defaults,rows[0].payload||{});
+  const payload=await response.json();
+  if(!payload)throw new Error("این کارت پیدا نشد یا لینک آن اشتباه است");
+  return Object.assign({},defaults,payload);
  }
  try{
   const params=new URLSearchParams(location.hash.slice(1));
