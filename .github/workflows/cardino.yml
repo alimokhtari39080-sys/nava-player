@@ -21,6 +21,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Validate Cardino editor JavaScript
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          html = Path("cardino/src/main/assets/creator.html").read_text()
+          scripts = re.findall(r'<script(?![^>]*\\bsrc=)[^>]*>(.*?)</script\\s*>', html, re.I | re.S)
+          if not scripts:
+              raise SystemExit("No inline editor script found")
+          Path("/tmp/cardino-creator.js").write_text("\\n".join(scripts))
+          PY
+          node --check /tmp/cardino-creator.js
+
       - name: Set up Java 17
         uses: actions/setup-java@v5
         with:
