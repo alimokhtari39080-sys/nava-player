@@ -103,7 +103,7 @@ footer{text-align:center;color:#81788a;font-size:9px;margin:23px}
 <script src="cardino-config.js"></script>
 <script>
 (function(){
-const BASE="https://alimokhtari39080-sys.github.io/nava-player/cardino-web/view.html";
+const BASE="https://alimokhtari39080-sys.github.io/nava-player/c/";
 const CONFIG=window.CARDINO_CONFIG||{};
 const themes={
  wedding:{label:"YOU ARE INVITED",headline:"به جشن عشق ما دعوتید",message:"با شادی فراوان، از شما دعوت می‌کنیم در این روز به‌یادماندنی کنار ما باشید. حضورتان مایه دلگرمی و شادی ماست.",sender:"با مهر و احترام"},
@@ -149,6 +149,12 @@ $("song").addEventListener("change",e=>{
  $("filehint").textContent="کل آهنگ انتخاب شده؛ هنگام ساخت کارت روی فضای ابری بارگذاری می‌شود و گیرنده کل آن را می‌شنود.";
 });
 function setStatus(html){$("status").innerHTML=html;$("status").style.display="block"}
+function apiHeaders(extra){
+ const headers=Object.assign({apikey:CONFIG.supabaseAnonKey},extra||{});
+ // Legacy anon keys are JWTs. New sb_publishable keys must NOT be sent as Bearer tokens.
+ if(CONFIG.supabaseAnonKey&&CONFIG.supabaseAnonKey.startsWith("eyJ"))headers.Authorization="Bearer "+CONFIG.supabaseAnonKey;
+ return headers;
+}
 function backendReady(){
  return /^https:\/\//.test(CONFIG.supabaseUrl||"") &&
         typeof CONFIG.supabaseAnonKey==="string" && CONFIG.supabaseAnonKey.length>20;
@@ -181,7 +187,7 @@ async function uploadObject(code,name,blob,type){
  const objectPath="cards/"+code+"/"+name;
  const response=await fetch(url+"/storage/v1/object/"+bucket+"/"+objectPath.split("/").map(encodeURIComponent).join("/"),{
   method:"POST",
-  headers:{"apikey":CONFIG.supabaseAnonKey,"Authorization":"Bearer "+CONFIG.supabaseAnonKey,"Content-Type":type,"x-upsert":"false"},
+  headers:apiHeaders({"Content-Type":type,"x-upsert":"false"}),
   body:blob
  });
  if(!response.ok){const detail=await response.text();throw new Error("آپلود فایل ناموفق بود ("+response.status+"): "+detail.slice(0,180))}
@@ -191,7 +197,7 @@ async function saveCard(payload,code){
  const url=CONFIG.supabaseUrl.replace(/\/$/,"");
  const response=await fetch(url+"/rest/v1/cardino_cards",{
   method:"POST",
-  headers:{"apikey":CONFIG.supabaseAnonKey,"Authorization":"Bearer "+CONFIG.supabaseAnonKey,"Content-Type":"application/json","Prefer":"return=minimal"},
+  headers:apiHeaders({"Content-Type":"application/json","Prefer":"return=minimal"}),
   body:JSON.stringify({code:code,payload:payload})
  });
  if(!response.ok){const detail=await response.text();throw new Error("ذخیره کارت ناموفق بود ("+response.status+"): "+detail.slice(0,180))}
