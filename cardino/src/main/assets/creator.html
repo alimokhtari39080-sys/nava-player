@@ -150,14 +150,15 @@ $("song").addEventListener("change",e=>{
 });
 function setStatus(html){$("status").innerHTML=html;$("status").style.display="block"}
 function apiHeaders(extra){
- const headers=Object.assign({apikey:CONFIG.supabaseAnonKey},extra||{});
+ const key=CONFIG.supabaseApiKey||CONFIG.supabaseAnonKey||"";
+ const headers=Object.assign({apikey:key},extra||{});
  // Legacy anon keys are JWTs. New sb_publishable keys must NOT be sent as Bearer tokens.
- if(CONFIG.supabaseAnonKey&&CONFIG.supabaseAnonKey.startsWith("eyJ"))headers.Authorization="Bearer "+CONFIG.supabaseAnonKey;
+ if(key.startsWith("eyJ"))headers.Authorization="Bearer "+key;
  return headers;
 }
 function backendReady(){
  return /^https:\/\//.test(CONFIG.supabaseUrl||"") &&
-        typeof CONFIG.supabaseAnonKey==="string" && CONFIG.supabaseAnonKey.length>20;
+        typeof (CONFIG.supabaseApiKey||CONFIG.supabaseAnonKey)==="string" && (CONFIG.supabaseApiKey||CONFIG.supabaseAnonKey).length>20;
 }
 function randomCode(){
  const alphabet="0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -218,7 +219,7 @@ async function createCard(){
   if(photoData)data.photo=await uploadObject(code,"photo.jpg",dataUrlToBlob(photoData),"image/jpeg");
   if(musicFile)data.music=await uploadObject(code,"music."+musicExt(musicFile),musicFile,musicMime(musicFile));
   const savedCode=await saveCard(data,code);
-  lastLink=BASE+"?c="+savedCode;
+  lastLink=BASE+savedCode;
   $("shareBtn").disabled=$("copyBtn").disabled=false;
   setStatus("کارت با موفقیت ذخیره شد. لینک کوتاه آماده ارسال است:<br><a href='"+lastLink+"' target='_blank' rel='noopener'>"+lastLink+"</a><br>حجم موسیقی: "+(musicFile?(musicFile.size/1024/1024).toFixed(1)+" مگابایت":"بدون موسیقی"));
  }catch(error){
