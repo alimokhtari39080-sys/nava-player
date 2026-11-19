@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "NAVAPlayer"
-include(":app")
+include(":app", ":cardino")
