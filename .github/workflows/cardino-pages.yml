@@ -49,6 +49,24 @@ jobs:
           </html>
           EOF
 
+      - name: Validate published Cardino JavaScript
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          for source, target in [
+              ("cardino-web/view.html", "/tmp/cardino-viewer.js"),
+              ("cardino-web/404.html", "/tmp/cardino-short-link.js"),
+          ]:
+              html = Path(source).read_text()
+              scripts = re.findall(r'<script(?![^>]*\\bsrc=)[^>]*>(.*?)</script\\s*>', html, re.I | re.S)
+              if not scripts:
+                  raise SystemExit(f"No inline script found in {source}")
+              Path(target).write_text("\\n".join(scripts))
+          PY
+          node --check /tmp/cardino-viewer.js
+          node --check /tmp/cardino-short-link.js
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
