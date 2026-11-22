@@ -1,98 +1,79 @@
 const state = {
-  catalog: window.NAVA_CATALOG || {items:[],channels:[]},
+  catalog: window.NAVA_CATALOG || {items:[]},
   tab: "all",
   artist: "همه",
   query: "",
+  currentId: null,
   favorites: new Set(readSaved("nava-madahi-player-favorites"))
 };
 const $ = (s) => document.querySelector(s);
-const tracks = $("#tracks");
-const playerPanel = $("#playerPanel");
+const audio = $("#audioElement");
 
 function readSaved(key) {
   try { return JSON.parse(localStorage.getItem(key) || "[]"); } catch { return []; }
 }
 function escapeText(value) {
   return String(value || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 function faNumber(n) {
   try { return new Intl.NumberFormat("fa-IR").format(n); } catch { return String(n); }
 }
-function toDate(item) {
-  const n = Date.parse(item.publishedAt || "");
-  return Number.isFinite(n) ? n : 0;
+function formatTime(seconds) {
+  if (!Number.isFinite(seconds) || seconds < 0) return "۰۰:۰۰";
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return faNumber(mins).padStart(2, "۰") + ":" + faNumber(secs).padStart(2, "۰");
 }
-function isRecent(item) {
-  return item.type === "video" && toDate(item) > 0 &&
-    (Date.now() - toDate(item)) < 180 * 24 * 60 * 60 * 1000;
-}
-function isOld(item) { return item.type === "archive" || !isRecent(item); }
-function dateLabel(item) {
-  const stamp = toDate(item);
-  if (!stamp) return "آرشیو قدیمی";
-  try { return new Intl.DateTimeFormat("fa-IR",{year:"numeric",month:"short",day:"numeric"}).format(new Date(stamp)); }
-  catch { return ""; }
-}
-function saveFavorites() {
+function persistFavorites() {
   localStorage.setItem("nava-madahi-player-favorites", JSON.stringify([...state.favorites]));
 }
 function persistCatalog() {
   try { localStorage.setItem("nava-madahi-player-catalog", JSON.stringify(state.catalog)); } catch {}
 }
 function loadCatalog() {
-  const saved = localStorage.getItem("nava-madahi-player-catalog");
-  if (!saved) return;
   try {
-    const parsed = JSON.parse(saved);
-    if (Array.isArray(parsed.items) && parsed.items.length) {
-      const byId = new Map((state.catalog.items || []).map(x => [x.id, x]));
-      parsed.items.forEach(x => byId.set(x.id, x));
-      state.catalog = {...parsed, items:[...byId.values()]};
+    const saved = JSON.parse(localStorage.getItem("nava-madahi-player-catalog") || "null");
+    if (saved && Array.isArray(saved.items) && saved.items.length) {
+      const byId = new Map((state.catalog.items || []).map(x => [x.id,x]));
+      saved.items.forEach(x => byId.set(x.id,x));
+      state.catalog = {...saved,items:[...byId.values()]};
     }
   } catch {}
 }
 function artistNames() {
-  const fromChannels = (state.catalog.channels || []).map(c => c.name).filter(Boolean);
-  const fromItems = (state.catalog.items || []).map(x => x.maddah).filter(Boolean);
-  return ["همه", ...new Set([...fromChannels, ...fromItems])];
+  return ["همه", ...new Set((state.catalog.items || []).map(x => x.maddah).filter(Boolean))];
 }
 function renderArtists() {
   $("#artistChips").innerHTML = artistNames().map(name =>
     '<button class="artist-chip '+(state.artist===name?'active':'')+'" data-artist="'+escapeText(name)+'">'+escapeText(name)+'</button>'
   ).join("");
 }
-function getFiltered() {
+function filteredItems() {
   const q = state.query.trim().toLocaleLowerCase("fa");
   return (state.catalog.items || []).filter(item => {
-    const hay = [item.title,item.maddah,item.description,item.category,item.source].join(" ").toLocaleLowerCase("fa");
+    const hay = [item.title,item.maddah,item.description].join(" ").toLocaleLowerCase("fa");
     const searchOk = !q || hay.includes(q);
     const artistOk = state.artist === "همه" || item.maddah === state.artist;
-    let tabOk = true;
-    if (state.tab === "latest") tabOk = isRecent(item);
-    if (state.tab === "old") tabOk = isOld(item);
-    if (state.tab === "favorites") tabOk = state.favorites.has(item.id);
+    const tabOk = state.tab === "all"
+      || (state.tab === "latest" && item.group === "latest")
+      || (state.tab === "old" && item.group !== "latest")
+      || (state.tab === "favorites" && state.favorites.has(item.id));
     return searchOk && artistOk && tabOk;
-  }).sort((a,b) => toDate(b)-toDate(a));
+  }).sort((a,b) => (a.order || 999) - (b.order || 999));
 }
 function renderTracks() {
-  const items = getFiltered();
-  $("#resultCount").textContent = faNumber(items.length)+" مداحی";
+  const items = filteredItems();
+  $("#resultCount").textContent = faNumber(items.length) + " مداحی";
   $("#tracks").innerHTML = items.map(item => {
-    const archived = item.type === "archive" || !item.videoId;
-    const isSaved = state.favorites.has(item.id);
-    const action = archived ? "مشاهده آرشیو" : "پخش داخل برنامه";
-    return '<article class="track">'+
-      '<div class="cover">'+(archived ? "◷" : "♫")+'</div>'+
+    const saved = state.favorites.has(item.id);
+    const active = state.currentId === item.id && !audio.paused;
+    return '<article class="track '+(active?'playing':'')+'">'+
       '<div class="track-main"><h3>'+escapeText(item.title)+'</h3>'+
-      '<p>'+escapeText(item.maddah)+' · '+escapeText(item.source || "منبع")+'</p>'+
-      '<div class="tags"><span class="tag">'+escapeText(item.category || (archived?"قدیمی و آرشیوی":"جدیدترین"))+'</span><span class="tag">'+dateLabel(item)+'</span></div></div>'+
-      '<button class="play '+(archived?"archive":"")+'" data-play="'+escapeText(item.id)+'">'+action+'</button>'+
-      '<button class="favorite '+(isSaved?"saved":"")+'" data-favorite="'+escapeText(item.id)+'" aria-label="نشان‌کردن">'+(isSaved?"♥":"♡")+'</button>'+
+      '<p>'+escapeText(item.maddah)+' · '+escapeText(item.quality || "MP3")+'</p></div>'+
+      '<button class="play" data-play="'+escapeText(item.id)+'">'+(active?"در حال پخش":"▶ پخش")+'</button>'+
+      '<button class="favorite '+(saved?'saved':'')+'" data-favorite="'+escapeText(item.id)+'" aria-label="نشان‌کردن">'+(saved?"♥":"♡")+'</button>'+
       '</article>';
   }).join("");
   $("#empty").hidden = items.length !== 0;
@@ -102,57 +83,134 @@ function render() {
   renderTracks();
   document.querySelectorAll("[data-tab]").forEach(b => b.classList.toggle("active", b.dataset.tab === state.tab));
 }
-function setStatus(text) { $("#statusText").textContent = text; }
-function playItem(id) {
+function setStatus(message) { $("#statusText").textContent = message; }
+function setPlayerStatus(message) { $("#playerStatus").textContent = message; }
+function safeAudioUrl(raw) {
+  try {
+    const u = new URL(raw);
+    return u.protocol === "https:" &&
+      (u.hostname === "sonalos.com" || u.hostname.endsWith(".sonalos.com"));
+  } catch { return false; }
+}
+function currentIndex() {
+  return filteredItems().findIndex(x => x.id === state.currentId);
+}
+function setMediaSession(item) {
+  if (!("mediaSession" in navigator)) return;
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: item.title || "مداحی",
+      artist: item.maddah || "مداح",
+      album: "نوای هیئت پلاس"
+    });
+    navigator.mediaSession.setActionHandler("play", () => audio.play());
+    navigator.mediaSession.setActionHandler("pause", () => audio.pause());
+    navigator.mediaSession.setActionHandler("previoustrack", previousTrack);
+    navigator.mediaSession.setActionHandler("nexttrack", nextTrack);
+  } catch {}
+}
+async function playItem(id) {
   const item = (state.catalog.items || []).find(x => x.id === id);
-  if (!item) return;
-  if (item.videoId) {
-    $("#playerTitle").textContent = item.title || "مداحی";
-    $("#playerHelp").textContent = "پخش‌کننده رسمی یوتیوب در همین برنامه باز شده است؛ برای شروع، Play را بزن.";
-    const videoId = encodeURIComponent(item.videoId);
-    const origin = encodeURIComponent("https://appassets.androidplatform.net");
-    $("#videoFrame").innerHTML = '<iframe title="'+escapeText(item.title)+'" src="https://www.youtube.com/embed/'+videoId+'?playsinline=1&rel=0&origin='+origin+'" allow="autoplay; encrypted-media; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>';
-    playerPanel.hidden = false;
-    playerPanel.scrollIntoView({behavior:"smooth",block:"start"});
-    const history = readSaved("nava-madahi-player-history");
-    localStorage.setItem("nava-madahi-player-history", JSON.stringify([id,...history.filter(x=>x!==id)].slice(0,100)));
-  } else if (item.url && window.NavaPlayer && typeof window.NavaPlayer.openArchive === "function") {
-    window.NavaPlayer.openArchive(item.url);
-  } else if (item.url) {
-    window.open(item.url, "_blank");
+  if (!item || !safeAudioUrl(item.audioUrl)) {
+    setStatus("برای این مدخل هنوز لینک صوتی معتبر ثبت نشده است.");
+    return;
+  }
+  if (state.currentId === id && audio.src) {
+    if (audio.paused) {
+      try { await audio.play(); } catch { setPlayerStatus("پخش شروع نشد؛ اتصال منبع را بررسی کن."); }
+    } else audio.pause();
+    return;
+  }
+
+  state.currentId = id;
+  $("#playerDock").hidden = false;
+  $("#playerTitle").textContent = item.title;
+  $("#playerArtist").textContent = item.maddah;
+  $("#qualityLabel").textContent = "MP3 · " + (item.quality || "کیفیت منبع");
+  $("#seekBar").value = "0";
+  $("#currentTime").textContent = "۰۰:۰۰";
+  $("#duration").textContent = "۰۰:۰۰";
+  $("#playPauseButton").textContent = "Ⅱ";
+  setPlayerStatus("در حال اتصال به منبع صوت...");
+  renderTracks();
+
+  audio.pause();
+  audio.src = item.audioUrl;
+  audio.load();
+  setMediaSession(item);
+  try {
+    await audio.play();
+    setPlayerStatus("در حال پخش صوت");
+    $("#playerDock").scrollIntoView({behavior:"smooth",block:"end"});
+  } catch (err) {
+    setPlayerStatus("پخش شروع نشد؛ دسترسی به منبع صوت یا اینترنت را بررسی کن.");
+    $("#playPauseButton").textContent = "▶";
   }
 }
+function previousTrack() {
+  const list = filteredItems();
+  const index = currentIndex();
+  if (index > 0) playItem(list[index - 1].id);
+  else if (state.currentId) { audio.currentTime = 0; audio.play().catch(()=>{}); }
+}
+function nextTrack() {
+  const list = filteredItems();
+  const index = currentIndex();
+  if (index >= 0 && index < list.length - 1) playItem(list[index + 1].id);
+}
 function refreshCatalog() {
-  setStatus("در حال بررسی تازه‌ها…");
+  setStatus("در حال بررسی آرشیو صوتی...");
   if (window.NavaPlayer && typeof window.NavaPlayer.refreshCatalog === "function") {
     window.NavaPlayer.refreshCatalog();
   } else {
-    setStatus("برای دریافت تازه‌ها به اینترنت وصل شو.");
+    setStatus("نسخه آفلاین آماده است؛ برای تازه‌سازی به اینترنت وصل شو.");
   }
 }
 window.onRemoteCatalog = function(raw) {
   try {
     const remote = typeof raw === "string" ? JSON.parse(raw) : raw;
-    if (!remote || !Array.isArray(remote.items)) {
-      setStatus("فهرست قبلی حفظ شد؛ اتصال ناموفق بود.");
-      return;
-    }
+    if (!remote || !Array.isArray(remote.items)) throw new Error("invalid catalog");
+    const audioItems = remote.items.filter(x => x.type === "audio" && safeAudioUrl(x.audioUrl));
+    if (!audioItems.length) throw new Error("no audio items");
     const byId = new Map((state.catalog.items || []).map(x => [x.id,x]));
-    remote.items.forEach(x => byId.set(x.id,x));
+    audioItems.forEach(x => byId.set(x.id,x));
     state.catalog = {...remote,items:[...byId.values()]};
     persistCatalog();
-    const stamp = remote.updatedAt ? new Date(remote.updatedAt) : new Date();
-    $("#updatedAt").textContent = "آخرین بررسی: "+dateTime(stamp);
-    setStatus("فهرست با موفقیت تازه شد.");
+    const d = remote.updatedAt ? new Date(remote.updatedAt) : new Date();
+    $("#updatedAt").textContent = "به‌روزرسانی: " + new Intl.DateTimeFormat("fa-IR",{month:"short",day:"numeric"}).format(d);
+    setStatus("آرشیو صوتی به‌روز شد.");
     render();
   } catch {
-    setStatus("فهرست قبلی حفظ شد؛ خطا در خواندن اطلاعات.");
+    setStatus("فهرست قبلی حفظ شد؛ تازه‌سازی ناموفق بود.");
   }
 };
-function dateTime(d) {
-  try { return new Intl.DateTimeFormat("fa-IR",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}).format(d); }
-  catch { return d.toLocaleString(); }
-}
+
+audio.addEventListener("play", () => {
+  $("#playPauseButton").textContent = "Ⅱ";
+  setPlayerStatus("در حال پخش صوت");
+  renderTracks();
+});
+audio.addEventListener("pause", () => {
+  $("#playPauseButton").textContent = "▶";
+  if (!audio.ended) setPlayerStatus("پخش متوقف شده");
+  renderTracks();
+});
+audio.addEventListener("waiting", () => setPlayerStatus("در حال دریافت صدا..."));
+audio.addEventListener("canplay", () => { if (!audio.paused) setPlayerStatus("در حال پخش صوت"); });
+audio.addEventListener("loadedmetadata", () => { $("#duration").textContent = formatTime(audio.duration); });
+audio.addEventListener("timeupdate", () => {
+  $("#currentTime").textContent = formatTime(audio.currentTime);
+  $("#duration").textContent = formatTime(audio.duration);
+  if (Number.isFinite(audio.duration) && audio.duration > 0) {
+    $("#seekBar").value = String(Math.round(audio.currentTime / audio.duration * 1000));
+  }
+});
+audio.addEventListener("ended", nextTrack);
+audio.addEventListener("error", () => {
+  setPlayerStatus("این صوت از منبع در دسترس نیست؛ شبکه یا لینک منبع را بررسی کن.");
+  $("#playPauseButton").textContent = "▶";
+});
+
 document.addEventListener("click", e => {
   const play = e.target.closest("[data-play]");
   if (play) { playItem(play.dataset.play); return; }
@@ -160,17 +218,43 @@ document.addEventListener("click", e => {
   if (fav) {
     const id = fav.dataset.favorite;
     state.favorites.has(id) ? state.favorites.delete(id) : state.favorites.add(id);
-    saveFavorites(); renderTracks(); return;
+    persistFavorites(); renderTracks(); return;
   }
   const artist = e.target.closest("[data-artist]");
   if (artist) { state.artist = artist.dataset.artist; render(); return; }
   const tab = e.target.closest("[data-tab]");
-  if (tab) { state.tab = tab.dataset.tab; renderTracks(); document.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===state.tab)); return; }
+  if (tab) {
+    state.tab = tab.dataset.tab;
+    render();
+    return;
+  }
 });
 $("#search").addEventListener("input", e => { state.query = e.target.value; $("#clearSearch").style.visibility = state.query ? "visible" : "hidden"; renderTracks(); });
 $("#clearSearch").addEventListener("click", () => { $("#search").value=""; state.query=""; $("#clearSearch").style.visibility="hidden"; renderTracks(); });
 $("#refreshButton").addEventListener("click", refreshCatalog);
-$("#closePlayer").addEventListener("click", () => { $("#videoFrame").innerHTML=""; playerPanel.hidden=true; });
+$("#playPauseButton").addEventListener("click", () => {
+  if (!audio.src) {
+    if (state.currentId) playItem(state.currentId);
+    return;
+  }
+  if (audio.paused) audio.play().catch(()=>setPlayerStatus("پخش شروع نشد؛ منبع صوت را بررسی کن."));
+  else audio.pause();
+});
+$("#previousButton").addEventListener("click", previousTrack);
+$("#nextButton").addEventListener("click", nextTrack);
+$("#seekBar").addEventListener("input", e => {
+  if (Number.isFinite(audio.duration) && audio.duration > 0) {
+    audio.currentTime = (Number(e.target.value) / 1000) * audio.duration;
+  }
+});
+$("#closePlayer").addEventListener("click", () => {
+  audio.pause();
+  audio.removeAttribute("src");
+  audio.load();
+  state.currentId = null;
+  $("#playerDock").hidden = true;
+  renderTracks();
+});
 $("#notifyButton").addEventListener("click", () => window.NavaPlayer && window.NavaPlayer.requestNotificationPermission());
 $("#enableNotifications").addEventListener("click", () => window.NavaPlayer && window.NavaPlayer.requestNotificationPermission());
 
