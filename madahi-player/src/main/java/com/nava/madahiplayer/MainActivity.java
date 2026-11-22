@@ -39,8 +39,8 @@ import java.util.concurrent.TimeUnit;
 import org.json.JSONObject;
 
 public class MainActivity extends Activity {
-    private static final String FEED_URL =
-        "https://raw.githubusercontent.com/alimokhtari39080-sys/nava-player/main/madahi/src/main/assets/madahi/data/feed.json";
+    private static final String CATALOG_URL =
+        "https://raw.githubusercontent.com/alimokhtari39080-sys/nava-player/main/madahi-player/src/main/assets/player/data/catalog.json";
 
     private WebView webView;
     private TextView backButton;
@@ -52,7 +52,6 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         getWindow().setStatusBarColor(Color.rgb(18, 15, 22));
         getWindow().setNavigationBarColor(Color.rgb(18, 15, 22));
-
         buildScreen();
         configureWebView();
         scheduleBackgroundRefresh();
@@ -127,15 +126,10 @@ public class MainActivity extends Activity {
                 String scheme = uri.getScheme() == null ? "" : uri.getScheme();
                 String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase();
 
-                if ("https".equalsIgnoreCase(scheme) && isAllowedInAppHost(host)) {
-                    return false;
-                }
-
+                if ("https".equalsIgnoreCase(scheme) && isAllowedInAppHost(host)) return false;
                 try {
                     startActivity(new Intent(Intent.ACTION_VIEW, uri));
-                } catch (Exception ignored) {
-                    // An unsupported external URL should not crash the player.
-                }
+                } catch (Exception ignored) { }
                 return true;
             }
 
@@ -144,28 +138,17 @@ public class MainActivity extends Activity {
                 backButton.setVisibility(view.canGoBack() ? View.VISIBLE : View.INVISIBLE);
             }
         });
-
         webView.loadUrl("https://appassets.androidplatform.net/assets/player/index.html");
     }
 
     private boolean isAllowedInAppHost(String host) {
         return host.equals("appassets.androidplatform.net")
-            || host.equals("youtube.com")
-            || host.endsWith(".youtube.com")
-            || host.equals("youtube-nocookie.com")
-            || host.endsWith(".youtube-nocookie.com")
-            || host.equals("ytimg.com")
-            || host.endsWith(".ytimg.com")
-            || host.equals("googlevideo.com")
-            || host.endsWith(".googlevideo.com")
-            || host.equals("radioneynava.com")
-            || host.equals("www.radioneynava.com");
+            || host.equals("sonalos.com")
+            || host.endsWith(".sonalos.com");
     }
 
     private void goBack() {
-        if (webView != null && webView.canGoBack()) {
-            webView.goBack();
-        }
+        if (webView != null && webView.canGoBack()) webView.goBack();
     }
 
     @Override
@@ -178,17 +161,10 @@ public class MainActivity extends Activity {
         Constraints constraints = new Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build();
-
         PeriodicWorkRequest request = new PeriodicWorkRequest.Builder(
-            CatalogRefreshWorker.class, 12, TimeUnit.HOURS)
-            .setConstraints(constraints)
-            .build();
-
+            CatalogRefreshWorker.class, 12, TimeUnit.HOURS).setConstraints(constraints).build();
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            CatalogRefreshWorker.UNIQUE_WORK_NAME,
-            ExistingPeriodicWorkPolicy.UPDATE,
-            request
-        );
+            CatalogRefreshWorker.UNIQUE_WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, request);
     }
 
     private void askNotificationPermission() {
@@ -217,45 +193,27 @@ public class MainActivity extends Activity {
                 String payload = downloadCatalog();
                 String quoted = JSONObject.quote(payload);
                 runOnUiThread(() -> {
-                    if (webView != null) {
-                        webView.evaluateJavascript(
-                            "window.onRemoteCatalog && window.onRemoteCatalog(" + quoted + ")", null);
-                    }
+                    if (webView != null) webView.evaluateJavascript(
+                        "window.onRemoteCatalog && window.onRemoteCatalog(" + quoted + ")", null);
                 });
             });
-        }
-
-        @JavascriptInterface
-        public void openArchive(String rawUrl) {
-            try {
-                Uri uri = Uri.parse(rawUrl);
-                if (!"https".equalsIgnoreCase(uri.getScheme())) return;
-                String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase();
-                if (!host.equals("radioneynava.com") && !host.equals("www.radioneynava.com")) return;
-                runOnUiThread(() -> webView.loadUrl(uri.toString()));
-            } catch (Exception ignored) { }
         }
 
         @JavascriptInterface
         public void requestNotificationPermission() {
             runOnUiThread(MainActivity.this::askNotificationPermission);
         }
-
-        @JavascriptInterface
-        public void goBackToCatalog() {
-            runOnUiThread(MainActivity.this::goBack);
-        }
     }
 
     private String downloadCatalog() {
         HttpURLConnection connection = null;
         try {
-            connection = (HttpURLConnection) new URL(FEED_URL).openConnection();
+            connection = (HttpURLConnection) new URL(CATALOG_URL).openConnection();
             connection.setRequestMethod("GET");
             connection.setConnectTimeout(9000);
             connection.setReadTimeout(12000);
             connection.setRequestProperty("Cache-Control", "no-cache");
-            connection.setRequestProperty("User-Agent", "NavaMadahiPlayer-Android/1.0");
+            connection.setRequestProperty("User-Agent", "NavaMadahiAudio-Android/1.1");
             int status = connection.getResponseCode();
             if (status < 200 || status >= 300) return "{\"error\":\"HTTP " + status + "\"}";
             try (InputStream stream = connection.getInputStream();
