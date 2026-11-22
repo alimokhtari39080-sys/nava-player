@@ -83,3 +83,17 @@ The cloud-backed Cardino flow stores card text and metadata in Supabase Postgres
 5. Rebuild the Android APK and allow the GitHub Pages workflow to publish the viewer.
 
 Cards and media are public to people who have the link or the media URL. Do not use Cardino for private or sensitive material. The current client-side public-upload prototype has basic file-size, MIME-type and database-payload limits; before a public commercial launch, add server-side rate limiting, abuse protection, expiry/cleanup and stronger ownership controls. Each audio file is currently limited to 20 MiB by the Supabase bucket.
+
+
+## Nava Madahi — نوای هیئت
+
+A separate Persian RTL Android app for browsing online recitations, with a dedicated Hamid Alimi section and discovery cards for other maddahs.
+
+- Search by reciter, title, and occasion; save favorites locally.
+- Refreshes recent videos automatically from configured YouTube RSS channels.
+- Keeps audio at the original publishing source; it does not mirror copyrighted recordings.
+- Build the installable debug APK from **Actions → Nava Madahi Android APK → latest successful run → Artifacts → Nava-Madahi-Android-debug**.
+- Source module: `madahi/`; catalog channels: `madahi/data/sources.json`.
+- Automatic catalog refresh workflow: `.github/workflows/madahi-feed.yml`.
+
+See [madahi/README.md](madahi/README.md) for details.
