@@ -97,3 +97,12 @@ A separate Persian RTL Android app for browsing online recitations, with a dedic
 - Automatic catalog refresh workflow: `.github/workflows/madahi-feed.yml`.
 
 See [madahi/README.md](madahi/README.md) for details.
+
+
+## Nava Madahi Plus — in-app recitation player
+
+A separate installable Android app in `madahi-player/`, alongside (not replacing) the original `madahi/` app. It uses the official YouTube embedded player inside the app, opens supported radio archive pages in its own WebView, keeps old catalog entries and favorites, and checks for newly published catalog items about every 12 hours using Android WorkManager. Notifications require user permission and background timing is managed by Android.
+
+Build: `gradle --no-daemon :madahi-player:assembleDebug`
+
+APK workflow: **Actions → Nava Madahi Plus Android APK → Artifacts → Nava-Madahi-Plus-Android-debug**. See [madahi-player/README.md](madahi-player/README.md).
