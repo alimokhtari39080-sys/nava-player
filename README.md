@@ -99,9 +99,9 @@ A separate Persian RTL Android app for browsing online recitations, with a dedic
 See [madahi/README.md](madahi/README.md) for details.
 
 
-## Nava Madahi Plus — in-app recitation player
+## Nava Madahi Plus — audio-only recitation player
 
-A separate installable Android app in `madahi-player/`, alongside (not replacing) the original `madahi/` app. It uses the official YouTube embedded player inside the app, opens supported radio archive pages in its own WebView, keeps old catalog entries and favorites, and checks for newly published catalog items about every 12 hours using Android WorkManager. Notifications require user permission and background timing is managed by Android.
+A separate Android app in `madahi-player/`, alongside (not replacing) the original `madahi/` app. The Plus app plays MP3 audio inside the app with no YouTube or video player. It includes play/pause, seek, previous/next, favorites, archive tabs, and periodic audio-catalog checks/notifications. The starter audio catalog contains selected Hamid Alimi tracks from public Sonalos track pages; audio files remain on the provider's servers.
 
 Build: `gradle --no-daemon :madahi-player:assembleDebug`
 
