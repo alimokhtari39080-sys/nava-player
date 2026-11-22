@@ -1,0 +1,22 @@
+{
+  "channels": [
+    {
+      "name": "حمید علیمی",
+      "channelId": "UCRGEhhsXKr5NtPMmChVgGEg",
+      "url": "https://www.youtube.com/@alimi_media",
+      "enabled": true
+    },
+    {
+      "name": "محمدحسین پویانفر",
+      "channelId": "UCOlm-DDucnW_6ipLmFjrf3A",
+      "url": "https://www.youtube.com/@MohammadHosseinPouyanfar",
+      "enabled": true
+    },
+    {
+      "name": "سیدمجید بنی‌فاطمه",
+      "channelId": "UClaEW3i1eS-92qgqxXVLhuA",
+      "url": "https://www.youtube.com/@seyedmajidbanifatemeh4385",
+      "enabled": true
+    }
+  ]
+}
