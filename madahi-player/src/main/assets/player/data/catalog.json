@@ -1,0 +1,115 @@
+{
+  "updatedAt": "2026-11-22T14:10:00+03:30",
+  "provider": "Sonalos",
+  "providerUrl": "https://sonalos.com/artists/hamid-alimi",
+  "items": [
+    {
+      "id": "sonalos-6414-6551",
+      "title": "تو شهریاری فاطمه تباری",
+      "maddah": "حمید علیمی",
+      "audioUrl": "https://sonalos.com/download/6414/6551",
+      "sourcePage": "https://sonalos.com/track/to-shahriyari",
+      "source": "Sonalos",
+      "quality": "320 kbps",
+      "group": "latest",
+      "order": 1,
+      "type": "audio"
+    },
+    {
+      "id": "sonalos-5959-6061",
+      "title": "قدم از خانه بیرون نه",
+      "maddah": "حمید علیمی",
+      "audioUrl": "https://sonalos.com/download/5959/6061",
+      "sourcePage": "https://sonalos.com/track/ghadam-az-khane-biroon",
+      "source": "Sonalos",
+      "quality": "320 kbps",
+      "group": "latest",
+      "order": 2,
+      "type": "audio"
+    },
+    {
+      "id": "sonalos-5951-6053",
+      "title": "تو دل غم مونده",
+      "maddah": "حمید علیمی",
+      "audioUrl": "https://sonalos.com/download/5951/6053",
+      "sourcePage": "https://sonalos.com/track/too-del-gham-moonde",
+      "source": "Sonalos",
+      "quality": "320 kbps",
+      "group": "latest",
+      "order": 3,
+      "type": "audio"
+    },
+    {
+      "id": "sonalos-5946-6048",
+      "title": "میگن روضه دلمردگیه",
+      "maddah": "حمید علیمی",
+      "audioUrl": "https://sonalos.com/download/5946/6048",
+      "sourcePage": "https://sonalos.com/track/migan-roze-delmordegie",
+      "source": "Sonalos",
+      "quality": "320 kbps",
+      "group": "archive",
+      "order": 4,
+      "type": "audio"
+    },
+    {
+      "id": "sonalos-5916-6017",
+      "title": "حواست هست به موهای سفید سرم",
+      "maddah": "حمید علیمی",
+      "audioUrl": "https://sonalos.com/download/5916/6017",
+      "sourcePage": "https://sonalos.com/track/hamid-alimi-havaset-hast",
+      "source": "Sonalos",
+      "quality": "320 kbps",
+      "group": "archive",
+      "order": 5,
+      "type": "audio"
+    },
+    {
+      "id": "sonalos-5897-5998",
+      "title": "ای ساربان آهسته ران",
+      "maddah": "حمید علیمی",
+      "audioUrl": "https://sonalos.com/download/5897/5998",
+      "sourcePage": "https://sonalos.com/track/ey-sareban-aheste-ran",
+      "source": "Sonalos",
+      "quality": "320 kbps",
+      "group": "archive",
+      "order": 6,
+      "type": "audio"
+    },
+    {
+      "id": "sonalos-5887-5987",
+      "title": "همه بهم میگن یتیم",
+      "maddah": "حمید علیمی",
+      "audioUrl": "https://sonalos.com/download/5887/5987",
+      "sourcePage": "https://sonalos.com/track/hame-behem-migan",
+      "source": "Sonalos",
+      "quality": "320 kbps",
+      "group": "archive",
+      "order": 7,
+      "type": "audio"
+    },
+    {
+      "id": "sonalos-5886-5986",
+      "title": "تویی فقط تموم دلخوشی نوکرات",
+      "maddah": "حمید علیمی",
+      "audioUrl": "https://sonalos.com/download/5886/5986",
+      "sourcePage": "https://sonalos.com/track/toei-faghat",
+      "source": "Sonalos",
+      "quality": "320 kbps",
+      "group": "archive",
+      "order": 8,
+      "type": "audio"
+    },
+    {
+      "id": "sonalos-5855-5953",
+      "title": "قدم قدم با یه علم",
+      "maddah": "حمید علیمی",
+      "audioUrl": "https://sonalos.com/download/5855/5953",
+      "sourcePage": "https://sonalos.com/track/ghadam-ghadam-ba-ye-alam",
+      "source": "Sonalos",
+      "quality": "320 kbps",
+      "group": "archive",
+      "order": 9,
+      "type": "audio"
+    }
+  ]
+}
