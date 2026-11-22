@@ -1562,6 +1562,42 @@ window.NAVA_CATALOG = {
       "group": "archive",
       "order": 130,
       "type": "audio"
+    },
+    {
+      "id": "sonalos-9627-11284",
+      "title": "هنگام سپیده دم خروس سحری دانی که چرا همی کند نوحه گری",
+      "maddah": "شهرام ناظری",
+      "audioUrl": "https://sonalos.com/download/9627/11284",
+      "sourcePage": "https://sonalos.com/track/sepide",
+      "source": "Sonalos",
+      "quality": "128 kbps",
+      "group": "archive",
+      "order": 131,
+      "type": "audio"
+    },
+    {
+      "id": "sonalos-9134-10314",
+      "title": "مداحی روله داغت نبینم",
+      "maddah": "محسن لرستانی",
+      "audioUrl": "https://sonalos.com/download/9134/10314",
+      "sourcePage": "https://sonalos.com/track/roola-daghet-nabinam",
+      "source": "Sonalos",
+      "quality": "128 kbps",
+      "group": "archive",
+      "order": 132,
+      "type": "audio"
+    },
+    {
+      "id": "sonalos-6426-6563",
+      "title": "خوشبختی یعنی تو زندگیت امام حسین داری محمد حدادیان",
+      "maddah": "محمد حسین حدادیان",
+      "audioUrl": "https://sonalos.com/download/6426/6563",
+      "sourcePage": "https://sonalos.com/track/khoshbakhti-yani",
+      "source": "Sonalos",
+      "quality": "320 kbps",
+      "group": "archive",
+      "order": 133,
+      "type": "audio"
     }
   ]
 };
