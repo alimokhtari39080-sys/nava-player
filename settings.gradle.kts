@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "NAVAPlayer"
-include(":app", ":cardino", ":madahi", ":madahi-player")
+include(":app", ":cardino", ":madahi", ":madahi-player", ":madahi-archive")
