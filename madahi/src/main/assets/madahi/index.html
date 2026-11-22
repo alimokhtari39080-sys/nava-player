@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#17131d">
+  <meta name="description" content="آرشیو آنلاین مداحی‌ها؛ تازه‌ترین آثار حمید علیمی و دیگر مداحان">
+  <title>نوای هیئت | آرشیو مداحی</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+      <div class="brand-copy"><strong>نوای هیئت</strong><small>آرشیو آنلاین مداحی</small></div>
+      <div class="online-pill"><i></i><span id="connectionLabel">آماده</span></div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-glow"></div>
+        <div class="hero-kicker">صدای عشق، همیشه همراه</div>
+        <h1>هر نوایی که<br><em>دنبالش هستی</em></h1>
+        <p>مداحی‌های تازه و آرشیوی از مداحان مختلف؛ یک‌جا، مرتب و همیشه به‌روز.</p>
+        <div class="hero-actions">
+          <a class="primary-btn" href="https://www.youtube.com/@alimi_media" target="_blank" rel="noopener">ورود به کانال حمید علیمی <span>↗</span></a>
+          <button class="soft-btn" id="jumpLatest">تازه‌ها <span>↓</span></button>
+        </div>
+        <div class="hero-foot"><span>ویژه این نسخه</span><b>حمید علیمی</b><span class="spark">✦</span></div>
+      </section>
+
+      <section class="search-section" aria-label="جست‌وجو">
+        <label class="searchbox"><span class="search-icon">⌕</span><input id="searchInput" type="search" placeholder="نام مداح، عنوان مداحی یا مناسبت..." autocomplete="off"><button id="clearSearch" aria-label="پاک کردن">×</button></label>
+        <div class="quick-filters" id="quickFilters">
+          <button class="filter-chip active" data-filter="all">همه</button>
+          <button class="filter-chip" data-filter="حمید علیمی">حمید علیمی</button>
+          <button class="filter-chip" data-filter="محرم">محرم</button>
+          <button class="filter-chip" data-filter="فاطمیه">فاطمیه</button>
+          <button class="filter-chip" data-filter="favorites">علاقه‌مندی‌ها ♡</button>
+        </div>
+      </section>
+
+      <section class="section-block" id="latestSection">
+        <div class="section-heading"><div><span class="eyebrow">تازه از هیئت‌ها</span><h2>جدیدترین مداحی‌ها</h2></div><button class="text-btn" id="refreshButton">به‌روزرسانی ↻</button></div>
+        <div class="update-note" id="updateNote">فهرست آماده است؛ برای دریافت تازه‌ها اتصال اینترنت را روشن کن.</div>
+        <div id="tracksList" class="tracks-list"></div>
+        <div class="empty-state" id="emptyState" hidden>موردی پیدا نشد. نام مداح یا عبارت دیگری را جست‌وجو کن.</div>
+      </section>
+
+      <section class="section-block">
+        <div class="section-heading"><div><span class="eyebrow">صداهای آشنا</span><h2>مداح‌ها</h2></div><span class="counter">انتخاب کن و جست‌وجو کن</span></div>
+        <div class="artists-grid" id="artistsGrid"></div>
+      </section>
+
+      <section class="section-block occasions-block">
+        <div class="section-heading"><div><span class="eyebrow">بر اساس مناسبت</span><h2>برای هر حال و هوا</h2></div></div>
+        <div class="occasion-grid">
+          <button data-filter="محرم"><span>☾</span><b>محرم و صفر</b></button>
+          <button data-filter="فاطمیه"><span>✧</span><b>فاطمیه</b></button>
+          <button data-filter="اربعین"><span>◎</span><b>اربعین</b></button>
+          <button data-filter="رمضان"><span>☪</span><b>ماه رمضان</b></button>
+          <button data-filter="شور"><span>♫</span><b>شور و سینه‌زنی</b></button>
+          <button data-filter="روضه"><span>♡</span><b>روضه و زمینه</b></button>
+        </div>
+      </section>
+
+      <section class="source-note">
+        <div class="source-icon">♪</div>
+        <div><b>احترام به صاحب اثر</b><p>صوت و تصویر از منبع منتشرکننده پخش می‌شود. این برنامه فایل دارای حق نشر را کپی یا روی سرور خود ذخیره نمی‌کند.</p></div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="ناوبری">
+      <button class="nav-item selected" data-nav="home"><span>⌂</span><small>خانه</small></button>
+      <button class="nav-item" data-nav="latest"><span>♫</span><small>تازه‌ها</small></button>
+      <button class="nav-item" data-nav="artists"><span>♙</span><small>مداح‌ها</small></button>
+      <button class="nav-item" data-filter="favorites"><span>♡</span><small>علاقه‌مندی</small></button>
+    </nav>
+  </div>
+  <script src="data/seed.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
