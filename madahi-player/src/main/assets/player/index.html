@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#17131d">
+<meta name="description" content="نوای هیئت پلاس؛ آرشیو مداحی با پخش درون‌برنامه‌ای و اعلان آثار تازه">
+<title>نوای هیئت پلاس</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+  <header class="top">
+    <div class="logo">♫</div>
+    <div class="brand"><strong>نوای هیئت پلاس</strong><small>آرشیو و پخش درون‌برنامه‌ای</small></div>
+    <button class="notify" id="notifyButton" aria-label="فعال‌سازی اعلان‌ها">♧</button>
+  </header>
+
+  <main>
+    <section class="intro">
+      <div class="glow"></div>
+      <div class="overline">همراه صدای هیئت</div>
+      <h1>مداحی را پیدا کن؛<br><em>همین‌جا گوش کن</em></h1>
+      <p>تازه‌ترین آثار، آرشیو سال‌های قبل و پخش‌کننده داخلی در یک برنامه.</p>
+      <div class="intro-meta"><span class="live-dot"></span><span id="statusText">آرشیو آماده است</span><span class="spacer"></span><b>ویژه حمید علیمی و دیگر مداحان</b></div>
+    </section>
+
+    <section class="player-panel" id="playerPanel" hidden>
+      <div class="player-head">
+        <div><small>در حال پخش داخل برنامه</small><h2 id="playerTitle">مداحی</h2></div>
+        <button id="closePlayer" class="close">×</button>
+      </div>
+      <div class="video-frame" id="videoFrame"></div>
+      <p class="player-help" id="playerHelp">برای پخش، دکمه Play داخل پخش‌کننده را بزن.</p>
+    </section>
+
+    <section class="search-area">
+      <label class="search">
+        <span>⌕</span>
+        <input id="search" type="search" placeholder="جست‌وجوی مداح، مداحی یا مناسبت..." autocomplete="off">
+        <button id="clearSearch">×</button>
+      </label>
+      <div class="artist-chips" id="artistChips"></div>
+    </section>
+
+    <section class="library">
+      <div class="section-title">
+        <div><small>آرشیو یک‌جا</small><h2>کتابخانه مداحی</h2></div>
+        <button id="refreshButton" class="refresh">تازه‌سازی ↻</button>
+      </div>
+
+      <div class="tabs" id="tabs">
+        <button class="tab active" data-tab="all">همه</button>
+        <button class="tab" data-tab="latest">جدیدترین</button>
+        <button class="tab" data-tab="old">قدیمی‌ها</button>
+        <button class="tab" data-tab="favorites">نشان‌شده‌ها ♥</button>
+      </div>
+
+      <div class="result-line"><span id="resultCount">۰ مداحی</span><span id="updatedAt">فهرست آفلاین آماده است</span></div>
+      <div class="tracks" id="tracks"></div>
+      <div class="empty" id="empty" hidden>موردی پیدا نشد. فیلتر یا عبارت جست‌وجو را تغییر بده.</div>
+    </section>
+
+    <section class="archive-info">
+      <div class="archive-icon">◷</div>
+      <div><b>آرشیو قدیمی هم می‌ماند</b><p>مدخل‌های قدیمی و آرشیوی حذف نمی‌شوند؛ علاقه‌مندی‌ها نیز روی همین گوشی ذخیره می‌شوند.</p></div>
+    </section>
+
+    <section class="updates-info">
+      <div class="bell">♧</div>
+      <div><b>اعلان مداحی تازه</b><p>برنامه در پس‌زمینه، با اتصال اینترنت تقریباً هر ۱۲ ساعت فهرست را بررسی می‌کند. زمان اجرای بررسی را اندروید مدیریت می‌کند.</p></div>
+      <button id="enableNotifications">فعال‌سازی</button>
+    </section>
+
+    <p class="rights">پخش ویدئو از پخش‌کننده رسمی منتشرکننده انجام می‌شود. آثار دارای حق نشر دانلود یا روی سرور برنامه کپی نمی‌شوند.</p>
+  </main>
+
+  <nav class="bottom">
+    <button class="bottom-item active" data-tab="all"><span>⌂</span><small>خانه</small></button>
+    <button class="bottom-item" data-tab="latest"><span>♫</span><small>تازه‌ها</small></button>
+    <button class="bottom-item" data-tab="old"><span>◷</span><small>قدیمی‌ها</small></button>
+    <button class="bottom-item" data-tab="favorites"><span>♥</span><small>نشان‌شده</small></button>
+  </nav>
+</div>
+<script src="data/catalog.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
