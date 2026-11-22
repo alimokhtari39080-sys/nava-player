@@ -13,7 +13,12 @@ function readSaved(key) {
   try { return JSON.parse(localStorage.getItem(key) || "[]"); } catch { return []; }
 }
 function escapeText(value) {
-  return String(value || "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;","'":"&#39;"}[c]));
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 function faNumber(n) {
   try { return new Intl.NumberFormat("fa-IR").format(n); } catch { return String(n); }
