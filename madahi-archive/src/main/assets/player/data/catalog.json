@@ -98,6 +98,18 @@
       "group": "archive",
       "order": 8,
       "type": "audio"
+    },
+    {
+      "id": "sonalos-5976-6078",
+      "title": "قتال العرب علی عین الله ناظره وحید شکری",
+      "maddah": "وحید شکری",
+      "audioUrl": "https://sonalos.com/download/5976/6078",
+      "sourcePage": "https://sonalos.com/track/ghatal-alarab",
+      "source": "Sonalos",
+      "quality": "320 kbps",
+      "group": "archive",
+      "order": 9,
+      "type": "audio"
     }
   ]
 }
