@@ -10,7 +10,6 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 
-import androidx.core.content.ContextCompat;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
@@ -104,7 +103,7 @@ public class CatalogRefreshWorker extends Worker {
 
     private void postNewRecitationsNotification(Context context, int count) {
         if (Build.VERSION.SDK_INT >= 33
-                && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+                && context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
                     != PackageManager.PERMISSION_GRANTED) return;
 
         NotificationManager manager =
