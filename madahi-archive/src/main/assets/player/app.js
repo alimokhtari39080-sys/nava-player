@@ -154,6 +154,7 @@ function safeAudioUrl(raw) {
 }
 function playbackList() {
   if (state.tab === "artists" && state.artistPage) return (state.catalog.items || []).filter(x => x.maddah === state.artistPage).sort((a,b)=>(a.order||999)-(b.order||999));
+  if (state.tab === "settings") return (state.catalog.items || []).filter(x => safeAudioUrl(x.audioUrl)).sort((a,b)=>(a.order||999)-(b.order||999));
   return filteredItems();
 }
 function currentIndex() {
@@ -262,11 +263,13 @@ window.onRemoteCatalog = function(raw) {
 };
 
 audio.addEventListener("play", () => {
+  $("#playerDock").classList.add("is-playing");
   $("#playPauseButton").textContent = "Ⅱ";
   setPlayerStatus("در حال پخش صوت");
   render();
 });
 audio.addEventListener("pause", () => {
+  $("#playerDock").classList.remove("is-playing");
   $("#playPauseButton").textContent = "▶";
   if (!audio.ended) setPlayerStatus("پخش متوقف شده");
   render();
@@ -347,6 +350,7 @@ $("#closePlayer").addEventListener("click", () => {
 });
 $("#notifyButton").addEventListener("click", () => window.NavaPlayer && window.NavaPlayer.requestNotificationPermission());
 $("#enableNotifications").addEventListener("click", () => window.NavaPlayer && window.NavaPlayer.requestNotificationPermission());
+$("#updatesNotificationButton").addEventListener("click", () => window.NavaPlayer && window.NavaPlayer.requestNotificationPermission());
 $("#autoplaySetting").addEventListener("change", e => { state.settings.autoplay=e.target.checked; saveSettings(); });
 $("#motionSetting").addEventListener("change", e => { state.settings.motion=e.target.checked; saveSettings(); render(); });
 $("#themeSetting").addEventListener("change", e => { state.settings.light=e.target.checked; saveSettings(); render(); });
