@@ -81,7 +81,7 @@ function renderTracks() {
 function renderArtistDirectory() {
   const directory = $("#artistDirectory");
   const library = $("#librarySection");
-  const names = [...new Set((state.catalog.items || []).map(x => x.maddah).filter(Boolean))]
+  const names = [...new Set([...(state.catalog.artists || []), ...(state.catalog.items || []).map(x => x.maddah)].filter(Boolean))]
     .sort((a,b) => a.localeCompare(b,"fa"));
   const q = state.query.trim().toLocaleLowerCase("fa");
   const matching = names.filter(name => !q || name.toLocaleLowerCase("fa").includes(q) ||
