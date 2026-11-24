@@ -112,7 +112,7 @@ function renderArtistDirectory() {
     $("#artistFeature").hidden = false;
     $("#artistProfile").hidden = true;
     $("#artistGrid").innerHTML = matching.map(name =>
-      '<button class="artist-card '+(name==="حمید علیمی"?"alimi-card":"")+'" data-open-artist="'+escapeText(name)+'"><span class="artist-avatar">'+escapeText(name.slice(0,1))+'</span><span class="artist-card-name">'+escapeText(name)+'</span><small>'+faNumber(counts(name))+' مداحی</small><b>صفحه مداح ←</b></button>'
+      '<button class="artist-card '+(name==="حمید علیمی"?"alimi-card":"")+'" data-open-artist="'+escapeText(name)+'"><span class="artist-avatar">'+escapeText(name.slice(0,1))+'</span><span class="artist-card-name">'+escapeText(name)+'</span><small>'+(counts(name)?faNumber(counts(name))+' مداحی':'در انتظار افزودن صوت')+'</small><b>صفحه مداح ←</b></button>'
     ).join("");
   }
 }
