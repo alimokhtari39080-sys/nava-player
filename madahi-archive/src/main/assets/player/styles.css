@@ -14,3 +14,50 @@ main{padding:0 17px}.intro{margin:18px 0 18px;padding:24px 21px 17px;background:
 .artist-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.artist-card{min-width:0;display:flex;flex-direction:column;align-items:flex-start;text-align:right;padding:13px;border:1px solid var(--line);border-radius:15px;background:linear-gradient(140deg,#28212d,#1c1821);color:var(--cream);gap:5px}.artist-card.alimi-card{border-color:#d8b56c88;background:linear-gradient(140deg,#3b2b35,#201a25)}.artist-avatar{width:31px;height:31px;border-radius:10px;background:#d8b56c20;color:var(--gold2);display:grid;place-items:center;font-size:15px;font-weight:800}.artist-card-name{font-size:11px;font-weight:700;line-height:1.6}.artist-card small{font-size:9px;color:var(--muted)}.artist-card b{font-size:9px;color:var(--gold2);font-weight:500;margin-top:3px}
 .artist-profile{margin-top:8px}.back-directory{border:1px solid #d8b56c55;border-radius:10px;padding:9px 12px;background:#d8b56c13;color:var(--gold2);font-size:10px;margin-bottom:12px}.profile-hero{padding:22px 18px;margin-bottom:15px;border-radius:19px;border:1px solid #d8b56c55;background:radial-gradient(circle at 12% 10%,#8a634c55,transparent 45%),linear-gradient(125deg,#342634,#1e1924)}.profile-hero h2{font-size:24px;margin:5px 0;font-weight:800}.profile-hero p{font-size:10px;color:#c4b8c4;margin:0 0 8px}.profile-hero a{display:inline-block;font-size:9px;color:var(--gold2);text-decoration:none;margin-top:8px}.alimi-tag{display:inline-block;padding:5px 9px;border-radius:20px;border:1px solid #d8b56c66;background:#d8b56c19;color:var(--gold2);font-size:9px}.profile-tracks h3{font-size:14px;margin:0}.profile-tracks .section-title{margin-bottom:10px}
 .bottom{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));justify-items:center}.bottom-item{min-width:0;width:100%}
+
+/* Personalized settings and animated audio identity */
+.settings-section{margin:0 0 24px;animation:sectionIn .35s ease both}
+.settings-section[hidden]{display:none}
+.settings-hero{display:flex;align-items:center;gap:13px;padding:17px;border:1px solid #d8b56c55;border-radius:18px;background:linear-gradient(120deg,#44303e,#211b29);margin-bottom:12px}
+.settings-orb{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;background:linear-gradient(145deg,#efd28e,#a57943);color:#281f27;font-size:26px;box-shadow:0 0 0 7px #d8b56c12;animation:orbFloat 3.5s ease-in-out infinite}
+.settings-hero b{font-size:13px}.settings-hero p{margin:4px 0 0;color:var(--muted);font-size:10px;line-height:1.8}
+.settings-group{padding:14px 14px 8px;margin:10px 0;border:1px solid var(--line);border-radius:16px;background:linear-gradient(130deg,#211c26,#1a1720)}
+.settings-group h3{font-size:12px;color:var(--gold2);margin:0 0 5px}
+.setting-row{min-height:57px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding:9px 0}
+.setting-row:last-child{border-bottom:0}
+.setting-row>span{display:flex;flex-direction:column;gap:3px;min-width:0}
+.setting-row b{font-size:10px}.setting-row small{font-size:9px;color:var(--muted);line-height:1.6}
+.setting-row select{max-width:125px;background:#302936;color:var(--cream);border:1px solid #ffffff20;border-radius:9px;padding:8px;font-size:10px}
+.switch{appearance:none;width:42px;height:24px;flex:none;border-radius:30px;background:#514957;position:relative;transition:background .2s}
+.switch:after{content:"";position:absolute;width:18px;height:18px;top:3px;right:3px;border-radius:50%;background:#eee;transition:transform .2s}
+.switch:checked{background:#b58b4f}.switch:checked:after{transform:translateX(-18px);background:#fff}
+.range-setting input{width:105px;accent-color:var(--gold)}
+.shuffle-action,.setting-action,.reset-settings{border:1px solid #d8b56c55;border-radius:11px;background:#d8b56c17;color:var(--gold2);padding:10px 13px;font-size:10px}
+.shuffle-action{width:100%;margin:10px 0 5px}
+.reset-settings{width:100%;margin-top:6px}
+.settings-note{font-size:9px;color:var(--muted);line-height:1.9;text-align:center}
+.sound-mark{position:relative;overflow:hidden}
+.wave-bars{display:none;position:absolute;inset:0;align-items:center;justify-content:center;gap:2px;background:#281e28}
+.wave-bars b{width:3px;height:10px;border-radius:5px;background:var(--gold2);animation:wave 1s ease-in-out infinite}
+.wave-bars b:nth-child(2){animation-delay:.12s}.wave-bars b:nth-child(3){animation-delay:.24s}.wave-bars b:nth-child(4){animation-delay:.36s}.wave-bars b:nth-child(5){animation-delay:.48s}
+.player-dock.is-playing .wave-bars{display:flex}.player-dock.is-playing .sound-mark>span{display:none}
+.intro .glow{animation:glowDrift 7s ease-in-out infinite alternate}
+.track,.artist-card,.featured-alimi,.tab,.bottom-item{transition:transform .2s ease,border-color .2s ease,background .2s ease}
+.track:active,.artist-card:active,.featured-alimi:active{transform:scale(.985)}
+@keyframes wave{0%,100%{height:6px;opacity:.65}50%{height:22px;opacity:1}}
+@keyframes orbFloat{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-4px) rotate(3deg)}}
+@keyframes glowDrift{from{transform:translate(0,0) scale(.9)}to{transform:translate(30px,-12px) scale(1.2)}}
+@keyframes sectionIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.motion-off *,body.motion-off *:before,body.motion-off *:after{animation:none!important;transition:none!important}
+body{font-size:calc(14px * var(--font-scale,1))}
+body.light-mode{--bg:#f4efe7;--panel:#fffaf2;--panel2:#f0e7dc;--cream:#2d2530;--muted:#746b75;--line:#35283a20;background:radial-gradient(ellipse at 80% -10%,#ead7bd 0,transparent 38%),var(--bg);color:var(--cream)}
+body.light-mode .top,body.light-mode .bottom{background:#fffaf2ed}
+body.light-mode .search,body.light-mode .tabs,body.light-mode .settings-group,body.light-mode .source-info,body.light-mode .updates-info,body.light-mode .track,body.light-mode .artist-card{background:#fffaf2;color:var(--cream)}
+body.light-mode .intro,body.light-mode .settings-hero,body.light-mode .profile-hero{background:linear-gradient(130deg,#e9d8c4,#f9f1e7)}
+body.light-mode .intro p,body.light-mode .settings-hero p{color:#655a66}
+body.light-mode .setting-row select{background:#f2e9de;color:#332a35}
+body.light-mode .player-dock{background:#fffaf2f2}
+body.light-mode .artist-chip{background:#fffaf2;color:#625765}
+.bottom{grid-template-columns:repeat(6,minmax(0,1fr))}
+.bottom-item{min-width:0}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}}
