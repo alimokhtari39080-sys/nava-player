@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 <uses-permission android:name="android.permission.INTERNET"/><uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-<application android:allowBackup="true" android:label="@string/app_name" android:icon="@drawable/ic_player" android:theme="@style/PlayerTheme" android:usesCleartextTraffic="false" android:supportsRtl="true">
+<application android:allowBackup="true" android:label="@string/app_name" android:icon="@drawable/ic_launcher" android:roundIcon="@mipmap/ic_launcher" android:theme="@style/PlayerTheme" android:usesCleartextTraffic="false" android:supportsRtl="true">
 <activity android:name="com.nava.madahipro.MainActivity" android:configChanges="keyboard|keyboardHidden|orientation|screenSize" android:exported="true" android:screenOrientation="portrait"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity>
 </application></manifest>
