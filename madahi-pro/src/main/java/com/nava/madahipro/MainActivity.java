@@ -2,12 +2,14 @@ package com.nava.madahipro;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.DownloadManager;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.view.Gravity;
 import android.view.View;
 import android.webkit.JavascriptInterface;
@@ -18,6 +20,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.webkit.WebViewAssetLoader;
 import androidx.work.Constraints;
@@ -197,6 +200,49 @@ public class MainActivity extends Activity {
                         "window.onRemoteCatalog && window.onRemoteCatalog(" + quoted + ")", null);
                 });
             });
+        }
+
+        @JavascriptInterface
+        public void downloadAudio(String rawUrl, String rawTitle, String rawId) {
+            try {
+                Uri uri = Uri.parse(rawUrl == null ? "" : rawUrl);
+                String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase();
+                boolean allowedHost = host.equals("sonalos.com") || host.endsWith(".sonalos.com");
+                if (!"https".equalsIgnoreCase(uri.getScheme()) || !allowedHost) {
+                    runOnUiThread(() -> Toast.makeText(MainActivity.this,
+                        "لینک دانلود معتبر نیست.", Toast.LENGTH_SHORT).show());
+                    return;
+                }
+
+                String title = rawTitle == null || rawTitle.trim().isEmpty() ? "مداحی" : rawTitle.trim();
+                String id = rawId == null ? "audio" : rawId;
+                String fileName = (title + " - " + id)
+                    .replaceAll("[\\\\/:*?\\\"<>|\\p{Cntrl}]", "_")
+                    .replaceAll("\\s+", " ").trim();
+                if (fileName.length() > 100) fileName = fileName.substring(0, 100);
+
+                DownloadManager.Request request = new DownloadManager.Request(uri);
+                request.setTitle(title);
+                request.setDescription("نوای هیئت حرفه‌ای · ذخیره در پوشه دانلودها");
+                request.setMimeType("audio/mpeg");
+                request.setNotificationVisibility(
+                    DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                request.setAllowedOverMetered(true);
+                request.setAllowedOverRoaming(false);
+                request.setDestinationInExternalPublicDir(
+                    Environment.DIRECTORY_DOWNLOADS, "NavaMadahi/" + fileName + ".mp3");
+
+                DownloadManager manager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+                if (manager == null) throw new IllegalStateException("Download service unavailable");
+                manager.enqueue(request);
+                runOnUiThread(() -> Toast.makeText(MainActivity.this,
+                    "دانلود شروع شد؛ پوشه Download/NavaMadahi را بررسی کن.",
+                    Toast.LENGTH_LONG).show());
+            } catch (Exception e) {
+                runOnUiThread(() -> Toast.makeText(MainActivity.this,
+                    "شروع دانلود ممکن نشد؛ اتصال اینترنت را بررسی کن.",
+                    Toast.LENGTH_LONG).show());
+            }
         }
 
         @JavascriptInterface
