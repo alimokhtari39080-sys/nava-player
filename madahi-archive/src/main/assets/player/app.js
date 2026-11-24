@@ -2,6 +2,7 @@ const state = {
   catalog: window.NAVA_CATALOG || {items:[]},
   tab: "all",
   artist: "همه",
+  artistPage: null,
   query: "",
   currentId: null,
   favorites: new Set(readSaved("nava-madahi-archive-favorites"))
@@ -63,24 +64,62 @@ function filteredItems() {
     return searchOk && artistOk && tabOk;
   }).sort((a,b) => (a.order || 999) - (b.order || 999));
 }
+function trackMarkup(item) {
+  const saved = state.favorites.has(item.id);
+  const active = state.currentId === item.id && !audio.paused;
+  return '<article class="track '+(active?'playing':'')+'">' +
+    '<div class="track-main"><h3>'+escapeText(item.title)+'</h3><p>'+escapeText(item.maddah)+' · '+escapeText(item.quality || "MP3")+'</p></div>' +
+    '<button class="play" data-play="'+escapeText(item.id)+'">'+(active?"در حال پخش":"▶ پخش")+'</button>' +
+    '<button class="favorite '+(saved?'saved':'')+'" data-favorite="'+escapeText(item.id)+'" aria-label="نشان‌کردن">'+(saved?"♥":"♡")+'</button></article>';
+}
 function renderTracks() {
   const items = filteredItems();
   $("#resultCount").textContent = faNumber(items.length) + " مداحی";
-  $("#tracks").innerHTML = items.map(item => {
-    const saved = state.favorites.has(item.id);
-    const active = state.currentId === item.id && !audio.paused;
-    return '<article class="track '+(active?'playing':'')+'">'+
-      '<div class="track-main"><h3>'+escapeText(item.title)+'</h3>'+
-      '<p>'+escapeText(item.maddah)+' · '+escapeText(item.quality || "MP3")+'</p></div>'+
-      '<button class="play" data-play="'+escapeText(item.id)+'">'+(active?"در حال پخش":"▶ پخش")+'</button>'+
-      '<button class="favorite '+(saved?'saved':'')+'" data-favorite="'+escapeText(item.id)+'" aria-label="نشان‌کردن">'+(saved?"♥":"♡")+'</button>'+
-      '</article>';
-  }).join("");
+  $("#tracks").innerHTML = items.map(trackMarkup).join("");
   $("#empty").hidden = items.length !== 0;
+}
+function renderArtistDirectory() {
+  const directory = $("#artistDirectory");
+  const library = $("#librarySection");
+  const names = [...new Set((state.catalog.items || []).map(x => x.maddah).filter(Boolean))]
+    .sort((a,b) => a.localeCompare(b,"fa"));
+  const q = state.query.trim().toLocaleLowerCase("fa");
+  const matching = names.filter(name => !q || name.toLocaleLowerCase("fa").includes(q) ||
+    (state.catalog.items || []).some(x => x.maddah === name && (x.title || "").toLocaleLowerCase("fa").includes(q)));
+  const counts = name => (state.catalog.items || []).filter(x => x.maddah === name).length;
+  directory.hidden = state.tab !== "artists";
+  library.hidden = state.tab === "artists";
+  if (state.tab !== "artists") return;
+  $("#directoryCount").textContent = faNumber(names.length) + " مداح";
+  const alimiCount = counts("حمید علیمی");
+  $("#artistFeature").innerHTML = alimiCount
+    ? '<button class="featured-alimi" data-open-artist="حمید علیمی"><span class="feature-kicker">صفحه اختصاصی</span><strong>حمید علیمی</strong><span>آرشیو اختصاصی · '+faNumber(alimiCount)+' مداحی صوتی</span><b>ورود به صفحه علیمی ←</b></button>'
+    : "";
+  if (state.artistPage) {
+    const name = state.artistPage;
+    const songs = (state.catalog.items || []).filter(x => x.maddah === name)
+      .sort((a,b) => (a.order || 999) - (b.order || 999));
+    $("#artistGrid").hidden = true;
+    $("#artistFeature").hidden = true;
+    $("#artistProfile").hidden = false;
+    $("#profileHero").innerHTML = '<div class="profile-kicker">آرشیو اختصاصی مداح</div><h2>'+escapeText(name)+'</h2><p>'+faNumber(songs.length)+' مداحی صوتی در این آرشیو</p>' +
+      (name === "حمید علیمی" ? '<span class="alimi-tag">صفحه ویژه حمید علیمی</span>' : '') +
+      '<a href="https://sonalos.com/maddahi" target="_blank" rel="noopener">منبع آرشیو صوتی ↗</a>';
+    $("#artistTracks").innerHTML = '<div class="section-title"><div><small>آثار ثبت‌شده</small><h3>مداحی‌های '+escapeText(name)+'</h3></div></div>' +
+      (songs.length ? '<div class="tracks">'+songs.map(trackMarkup).join("")+'</div>' : '<div class="empty">هنوز مداحی صوتی برای این مداح ثبت نشده است.</div>');
+  } else {
+    $("#artistGrid").hidden = false;
+    $("#artistFeature").hidden = false;
+    $("#artistProfile").hidden = true;
+    $("#artistGrid").innerHTML = matching.map(name =>
+      '<button class="artist-card '+(name==="حمید علیمی"?"alimi-card":"")+'" data-open-artist="'+escapeText(name)+'"><span class="artist-avatar">'+escapeText(name.slice(0,1))+'</span><span class="artist-card-name">'+escapeText(name)+'</span><small>'+faNumber(counts(name))+' مداحی</small><b>صفحه مداح ←</b></button>'
+    ).join("");
+  }
 }
 function render() {
   renderArtists();
   renderTracks();
+  renderArtistDirectory();
   document.querySelectorAll("[data-tab]").forEach(b => b.classList.toggle("active", b.dataset.tab === state.tab));
 }
 function setStatus(message) { $("#statusText").textContent = message; }
@@ -92,8 +131,12 @@ function safeAudioUrl(raw) {
       (u.hostname === "sonalos.com" || u.hostname.endsWith(".sonalos.com"));
   } catch { return false; }
 }
+function playbackList() {
+  if (state.tab === "artists" && state.artistPage) return (state.catalog.items || []).filter(x => x.maddah === state.artistPage).sort((a,b)=>(a.order||999)-(b.order||999));
+  return filteredItems();
+}
 function currentIndex() {
-  return filteredItems().findIndex(x => x.id === state.currentId);
+  return playbackList().findIndex(x => x.id === state.currentId);
 }
 function setMediaSession(item) {
   if (!("mediaSession" in navigator)) return;
@@ -101,7 +144,7 @@ function setMediaSession(item) {
     navigator.mediaSession.metadata = new MediaMetadata({
       title: item.title || "مداحی",
       artist: item.maddah || "مداح",
-      album: "نوای هیئت پلاس"
+      album: "نوای هیئت آرشیو"
     });
     navigator.mediaSession.setActionHandler("play", () => audio.play());
     navigator.mediaSession.setActionHandler("pause", () => audio.pause());
@@ -148,13 +191,13 @@ async function playItem(id) {
   }
 }
 function previousTrack() {
-  const list = filteredItems();
+  const list = playbackList();
   const index = currentIndex();
   if (index > 0) playItem(list[index - 1].id);
   else if (state.currentId) { audio.currentTime = 0; audio.play().catch(()=>{}); }
 }
 function nextTrack() {
-  const list = filteredItems();
+  const list = playbackList();
   const index = currentIndex();
   if (index >= 0 && index < list.length - 1) playItem(list[index + 1].id);
 }
@@ -188,12 +231,12 @@ window.onRemoteCatalog = function(raw) {
 audio.addEventListener("play", () => {
   $("#playPauseButton").textContent = "Ⅱ";
   setPlayerStatus("در حال پخش صوت");
-  renderTracks();
+  render();
 });
 audio.addEventListener("pause", () => {
   $("#playPauseButton").textContent = "▶";
   if (!audio.ended) setPlayerStatus("پخش متوقف شده");
-  renderTracks();
+  render();
 });
 audio.addEventListener("waiting", () => setPlayerStatus("در حال دریافت صدا..."));
 audio.addEventListener("canplay", () => { if (!audio.paused) setPlayerStatus("در حال پخش صوت"); });
@@ -225,12 +268,13 @@ document.addEventListener("click", e => {
   const tab = e.target.closest("[data-tab]");
   if (tab) {
     state.tab = tab.dataset.tab;
+    if (state.tab !== "artists") state.artistPage = null;
     render();
     return;
   }
 });
-$("#search").addEventListener("input", e => { state.query = e.target.value; $("#clearSearch").style.visibility = state.query ? "visible" : "hidden"; renderTracks(); });
-$("#clearSearch").addEventListener("click", () => { $("#search").value=""; state.query=""; $("#clearSearch").style.visibility="hidden"; renderTracks(); });
+$("#search").addEventListener("input", e => { state.query = e.target.value; $("#clearSearch").style.visibility = state.query ? "visible" : "hidden"; render(); });
+$("#clearSearch").addEventListener("click", () => { $("#search").value=""; state.query=""; $("#clearSearch").style.visibility="hidden"; render(); });
 $("#refreshButton").addEventListener("click", refreshCatalog);
 $("#playPauseButton").addEventListener("click", () => {
   if (!audio.src) {
