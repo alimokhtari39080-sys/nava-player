@@ -20,9 +20,9 @@
     <section class="intro">
       <div class="glow"></div>
       <div class="overline">فقط صدا؛ همین‌جا گوش کن</div>
-      <h1>از آرشیو تکمیلی انتخاب کن؛<br><em>صدایش پخش می‌شود</em></h1>
+      <h1>از میان مداحان انتخاب کن؛<br><em>صدایش پخش می‌شود</em></h1>
       <p>بدون تصویر و بدون نیاز به بازکردن یوتیوب. پخش مستقیم صوت از منبع آرشیو.</p>
-      <div class="intro-meta"><span class="live-dot"></span><span id="statusText">آرشیو صوتی آماده است</span><span class="spacer"></span><b>آرشیو تکمیلی مداحان</b></div>
+      <div class="intro-meta"><span class="live-dot"></span><span id="statusText">آرشیو صوتی آماده است</span><span class="spacer"></span><b>آرشیو جامع مداحان</b></div>
     </section>
 
     <section class="search-area">
@@ -34,7 +34,18 @@
       <div class="artist-chips" id="artistChips"></div>
     </section>
 
-    <section class="library">
+    <section class="artist-directory" id="artistDirectory" hidden>
+      <div class="section-title"><div><small>فهرست هنرمندان</small><h2>صفحه اختصاصی مداحان</h2></div><span class="directory-count" id="directoryCount"></span></div>
+      <div class="artist-feature" id="artistFeature"></div>
+      <div class="artist-grid" id="artistGrid"></div>
+      <div class="artist-profile" id="artistProfile" hidden>
+        <button class="back-directory" id="backDirectory">← بازگشت به فهرست مداحان</button>
+        <div class="profile-hero" id="profileHero"></div>
+        <div class="profile-tracks" id="artistTracks"></div>
+      </div>
+    </section>
+
+    <section class="library" id="librarySection">
       <div class="section-title">
         <div><small>آرشیو صوتی</small><h2>مداحی‌ها</h2></div>
         <button id="refreshButton" class="refresh">تازه‌سازی ↻</button>
@@ -87,6 +98,7 @@
     <button class="bottom-item" data-tab="latest"><span>♫</span><small>تازه‌ها</small></button>
     <button class="bottom-item" data-tab="old"><span>◷</span><small>قدیمی‌ها</small></button>
     <button class="bottom-item" data-tab="favorites"><span>♥</span><small>نشان‌شده</small></button>
+    <button class="bottom-item" data-tab="artists"><span>♬</span><small>مداحان</small></button>
   </nav>
 </div>
 <script src="data/catalog.js"></script>
