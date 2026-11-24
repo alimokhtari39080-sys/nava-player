@@ -325,6 +325,7 @@ document.addEventListener("click", e => {
 $("#search").addEventListener("input", e => { state.query = e.target.value; $("#clearSearch").style.visibility = state.query ? "visible" : "hidden"; render(); });
 $("#clearSearch").addEventListener("click", () => { $("#search").value=""; state.query=""; $("#clearSearch").style.visibility="hidden"; render(); });
 $("#refreshButton").addEventListener("click", refreshCatalog);
+$("#settingsRefresh").addEventListener("click", refreshCatalog);
 $("#playPauseButton").addEventListener("click", () => {
   if (!audio.src) {
     if (state.currentId) playItem(state.currentId);
