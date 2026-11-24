@@ -5,11 +5,21 @@ const state = {
   artistPage: null,
   query: "",
   currentId: null,
-  favorites: new Set(readSaved("nava-madahi-archive-favorites"))
+  favorites: new Set(readSaved("nava-madahi-archive-favorites")),
+  settings: readSettings(),
+  sleepTimer: null
 };
 const $ = (s) => document.querySelector(s);
 const audio = $("#audioElement");
 
+function readSettings() {
+  const defaults = {autoplay:true, motion:true, light:false, speed:1, font:100};
+  try { return {...defaults, ...(JSON.parse(localStorage.getItem("nava-archive-settings") || "{}"))}; }
+  catch { return defaults; }
+}
+function saveSettings() {
+  try { localStorage.setItem("nava-archive-settings", JSON.stringify(state.settings)); } catch {}
+}
 function readSaved(key) {
   try { return JSON.parse(localStorage.getItem(key) || "[]"); } catch { return []; }
 }
@@ -120,7 +130,18 @@ function render() {
   renderArtists();
   renderTracks();
   renderArtistDirectory();
+  $("#settingsSection").hidden = state.tab !== "settings";
+  $("#searchArea").hidden = state.tab === "settings";
+  $("#librarySection").hidden = state.tab === "artists" || state.tab === "settings";
   document.querySelectorAll("[data-tab]").forEach(b => b.classList.toggle("active", b.dataset.tab === state.tab));
+  document.body.classList.toggle("light-mode", !!state.settings.light);
+  document.body.classList.toggle("motion-off", !state.settings.motion);
+  document.documentElement.style.setProperty("--font-scale", String(state.settings.font / 100));
+  $("#autoplaySetting").checked = !!state.settings.autoplay;
+  $("#motionSetting").checked = !!state.settings.motion;
+  $("#themeSetting").checked = !!state.settings.light;
+  $("#fontSetting").value = String(state.settings.font);
+  $("#speedSetting").value = String(state.settings.speed);
 }
 function setStatus(message) { $("#statusText").textContent = message; }
 function setPlayerStatus(message) { $("#playerStatus").textContent = message; }
@@ -199,7 +220,19 @@ function previousTrack() {
 function nextTrack() {
   const list = playbackList();
   const index = currentIndex();
-  if (index >= 0 && index < list.length - 1) playItem(list[index + 1].id);
+  if (state.settings.autoplay && index >= 0 && index < list.length - 1) playItem(list[index + 1].id);
+  else if (index >= 0 && index === list.length - 1) setPlayerStatus("پایان فهرست پخش");
+}
+function startSleepTimer(minutes) {
+  if (state.sleepTimer) clearTimeout(state.sleepTimer);
+  state.sleepTimer = null;
+  if (!minutes) { setPlayerStatus(audio.paused ? "تایمر خواب خاموش شد" : "در حال پخش صوت"); return; }
+  state.sleepTimer = setTimeout(() => {
+    audio.pause();
+    setPlayerStatus("تایمر خواب؛ پخش متوقف شد");
+    $("#sleepSetting").value = "0";
+  }, minutes * 60 * 1000);
+  setPlayerStatus("توقف خودکار پس از " + faNumber(minutes) + " دقیقه");
 }
 function refreshCatalog() {
   setStatus("در حال بررسی آرشیو صوتی...");
@@ -314,6 +347,23 @@ $("#closePlayer").addEventListener("click", () => {
 });
 $("#notifyButton").addEventListener("click", () => window.NavaPlayer && window.NavaPlayer.requestNotificationPermission());
 $("#enableNotifications").addEventListener("click", () => window.NavaPlayer && window.NavaPlayer.requestNotificationPermission());
+$("#autoplaySetting").addEventListener("change", e => { state.settings.autoplay=e.target.checked; saveSettings(); });
+$("#motionSetting").addEventListener("change", e => { state.settings.motion=e.target.checked; saveSettings(); render(); });
+$("#themeSetting").addEventListener("change", e => { state.settings.light=e.target.checked; saveSettings(); render(); });
+$("#fontSetting").addEventListener("input", e => { state.settings.font=Number(e.target.value); saveSettings(); document.documentElement.style.setProperty("--font-scale",String(state.settings.font/100)); });
+$("#speedSetting").addEventListener("change", e => { state.settings.speed=Number(e.target.value)||1; saveSettings(); audio.playbackRate=state.settings.speed; });
+$("#sleepSetting").addEventListener("change", e => startSleepTimer(Number(e.target.value)||0));
+$("#resetSettings").addEventListener("click", () => {
+  state.settings={autoplay:true,motion:true,light:false,speed:1,font:100}; saveSettings(); startSleepTimer(0); render();
+});
+$("#shuffleButton").addEventListener("click", () => {
+  const list=playbackList().filter(x=>safeAudioUrl(x.audioUrl));
+  if (!list.length) { setStatus("برای پخش تصادفی، ابتدا آرشیو صوتی را انتخاب کن."); return; }
+  const pool=list.filter(x=>x.id!==state.currentId);
+  const pick=(pool.length?pool:list)[Math.floor(Math.random()*(pool.length?pool:list).length)];
+  playItem(pick.id);
+});
+
 
 loadCatalog();
 render();
