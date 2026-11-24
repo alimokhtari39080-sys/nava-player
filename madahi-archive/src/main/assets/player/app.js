@@ -261,10 +261,23 @@ document.addEventListener("click", e => {
   if (fav) {
     const id = fav.dataset.favorite;
     state.favorites.has(id) ? state.favorites.delete(id) : state.favorites.add(id);
-    persistFavorites(); renderTracks(); return;
+    persistFavorites(); render(); return;
+  }
+  const openArtist = e.target.closest("[data-open-artist]");
+  if (openArtist) {
+    state.artistPage = openArtist.dataset.openArtist;
+    state.tab = "artists";
+    render();
+    return;
+  }
+  const backDirectory = e.target.closest("#backDirectory");
+  if (backDirectory) {
+    state.artistPage = null;
+    render();
+    return;
   }
   const artist = e.target.closest("[data-artist]");
-  if (artist) { state.artist = artist.dataset.artist; render(); return; }
+  if (artist) { state.artist = artist.dataset.artist; state.tab = "all"; state.artistPage = null; render(); return; }
   const tab = e.target.closest("[data-tab]");
   if (tab) {
     state.tab = tab.dataset.tab;
@@ -297,7 +310,7 @@ $("#closePlayer").addEventListener("click", () => {
   audio.load();
   state.currentId = null;
   $("#playerDock").hidden = true;
-  renderTracks();
+  render();
 });
 $("#notifyButton").addEventListener("click", () => window.NavaPlayer && window.NavaPlayer.requestNotificationPermission());
 $("#enableNotifications").addEventListener("click", () => window.NavaPlayer && window.NavaPlayer.requestNotificationPermission());
