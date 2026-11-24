@@ -80,6 +80,7 @@ function trackMarkup(item) {
   return '<article class="track '+(active?'playing':'')+'">' +
     '<div class="track-main"><h3>'+escapeText(item.title)+'</h3><p>'+escapeText(item.maddah)+' · '+escapeText(item.quality || "MP3")+'</p></div>' +
     '<button class="play" data-play="'+escapeText(item.id)+'">'+(active?"در حال پخش":"▶ پخش")+'</button>' +
+    '<button class="download" data-download="'+escapeText(item.id)+'" aria-label="دانلود مداحی" title="دانلود روی گوشی" '+(safeAudioUrl(item.audioUrl)?"":"disabled")+'>↓</button>' +
     '<button class="favorite '+(saved?'saved':'')+'" data-favorite="'+escapeText(item.id)+'" aria-label="نشان‌کردن">'+(saved?"♥":"♡")+'</button></article>';
 }
 function renderTracks() {
@@ -293,6 +294,19 @@ audio.addEventListener("error", () => {
 document.addEventListener("click", e => {
   const play = e.target.closest("[data-play]");
   if (play) { playItem(play.dataset.play); return; }
+  const download = e.target.closest("[data-download]");
+  if (download) {
+    const item = (state.catalog.items || []).find(x => x.id === download.dataset.download);
+    if (!item || !safeAudioUrl(item.audioUrl)) {
+      setStatus("لینک دانلود معتبر برای این مداحی ثبت نشده است.");
+    } else if (window.NavaPlayer && typeof window.NavaPlayer.downloadAudio === "function") {
+      window.NavaPlayer.downloadAudio(item.audioUrl, item.title || "مداحی", item.id || "audio");
+      setStatus("دانلود به صف دریافت‌های گوشی اضافه شد؛ وضعیت آن را از اعلان‌ها ببین.");
+    } else {
+      setStatus("دانلود مستقیم فقط در نسخه اندروید برنامه در دسترس است.");
+    }
+    return;
+  }
   const fav = e.target.closest("[data-favorite]");
   if (fav) {
     const id = fav.dataset.favorite;
